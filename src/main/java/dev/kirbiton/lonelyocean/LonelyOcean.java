@@ -1,6 +1,7 @@
 package dev.kirbiton.lonelyocean;
 
 import dev.kirbiton.lonelyocean.world.LonelyOceanChunkGenerator;
+import dev.kirbiton.lonelyocean.world.StarterIslandSpawn;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,7 @@ public final class LonelyOcean implements ModInitializer {
     @Override
     public void onInitialize() {
         LonelyOceanChunkGenerator.register();
-        LOGGER.info("Lonely Ocean: Survival registered its ocean-island chunk generator.");
+        StarterIslandSpawn.register();
+        LOGGER.info("Lonely Ocean: Survival registered its ocean-island chunk generator and starter-island spawn.");
     }
 }
