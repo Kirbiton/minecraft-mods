@@ -96,6 +96,7 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
             Holder<Biome> frozen = holders.get("minecraft:frozen_ocean");
             Holder<Biome> deepFrozen = holders.get("minecraft:deep_frozen_ocean");
             Holder<Biome> lush = holders.get("minecraft:lush_caves");
+            Holder<Biome> dripstone = holders.get("minecraft:dripstone_caves");
             Holder<Biome> deepDark = holders.get("minecraft:deep_dark");
             BiomeResolver islandBiomes = (quartX, quartY, quartZ) -> {
                 int x = QuartPos.toBlock(quartX);
@@ -112,8 +113,11 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
                 }
                 int floor = oceanFloorY(x, z, seed);
                 if (y < floor - 4 && UnderwaterCaves.isCave(x, y, z, seed)) {
-                    if (y < -28 && deepDark != null) return deepDark;
-                    if (lush != null) return lush;
+                    double caveClimate = noise2d(x, z, seed ^ 0x43415645434C494DL, 310.0);
+                    double caveDepth = noise2d(x, z, seed ^ 0x4445455043415645L, 190.0);
+                    if (y < -38 && caveDepth > 0.76 && deepDark != null) return deepDark;
+                    if (caveClimate > 0.64 && lush != null) return lush;
+                    if (dripstone != null) return dripstone;
                 }
                 double thermal = noise2d(x, z, seed ^ 0x4F4345414E54454DL, 1700.0);
                 double depth = noise2d(x, z, seed ^ 0x444545504F434541L, 520.0);
@@ -222,7 +226,7 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
                     : (int)Math.floorMod(coordinateHash(island.centerX(), island.centerZ(), seed), 5L);
             if (y == floorY) return switch (biome) {
                 case 1 -> Blocks.PODZOL.defaultBlockState();
-                case 2 -> Blocks.MOSS_BLOCK.defaultBlockState();
+                case 2 -> Blocks.GRASS_BLOCK.defaultBlockState();
                 case 3 -> Blocks.SNOW_BLOCK.defaultBlockState();
                 case 4 -> Blocks.MYCELIUM.defaultBlockState();
                 default -> Blocks.GRASS_BLOCK.defaultBlockState();
@@ -279,9 +283,17 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
                     || treeZ < pos.getMinBlockZ() || treeZ > pos.getMaxBlockZ()) continue;
             int groundY = island.surfaceY(treeX, treeZ);
             if (groundY == Integer.MIN_VALUE || groundY + 7 >= maxY || groundY < minY) continue;
-            boolean birch = random.nextBoolean();
-            BlockState log = (birch ? Blocks.BIRCH_LOG : Blocks.OAK_LOG).defaultBlockState();
-            BlockState leaves = (birch ? Blocks.BIRCH_LEAVES : Blocks.OAK_LEAVES).defaultBlockState();
+            int starterBiome = (int) Math.floorMod(coordinateHash(island.centerX(), island.centerZ(), seed), 5L);
+            BlockState log = switch (starterBiome) {
+                case 1, 3 -> Blocks.SPRUCE_LOG.defaultBlockState();
+                case 2 -> Blocks.JUNGLE_LOG.defaultBlockState();
+                default -> Blocks.OAK_LOG.defaultBlockState();
+            };
+            BlockState leaves = switch (starterBiome) {
+                case 1, 3 -> Blocks.SPRUCE_LEAVES.defaultBlockState();
+                case 2 -> Blocks.JUNGLE_LEAVES.defaultBlockState();
+                default -> Blocks.OAK_LEAVES.defaultBlockState();
+            };
             for (int dy = 1; dy <= 4; dy++) chunk.setBlockState(new BlockPos(treeX, groundY + dy, treeZ), log, 0);
             for (int dy = 3; dy <= 5; dy++) {
                 int radius = dy == 5 ? 1 : 2;
