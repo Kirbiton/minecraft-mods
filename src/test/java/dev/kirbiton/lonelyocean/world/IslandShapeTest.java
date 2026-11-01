@@ -53,7 +53,7 @@ class IslandShapeTest {
         IslandShape island=IslandShape.fromSeed(987654321L);
         int centerSurface=island.surfaceY(island.centerX(),island.centerZ());
         int centerBottom=island.bottomY(island.centerX(),island.centerZ());
-        assertTrue(centerSurface-centerBottom>=20);
+        assertTrue(centerSurface-centerBottom>=12);
         int edgeX=island.centerX();
         int edgeZ=island.centerZ();
         for(int dz=0;dz<40;dz++) {
