@@ -15,7 +15,7 @@ The Overworld generator currently:
 - reports the island's chunk as the generator origin to guide spawn search;
 - exposes matching base-column and base-height calculations for heightmaps and structure placement;
 - explicitly creates the normal vanilla structure-placement state, preserving the registered vanilla structure sets;
-- extends the biome eligibility tags for ancient cities and trial chambers to include all ocean biome variants, so these structures can start below the seabed.
+- extends the biome eligibility tags for ancient cities, trial chambers, and strongholds to include all ocean biome variants, so these structures can start below the seabed.
 
 The preset's biome source uses vanilla checkerboard selection over warm, lukewarm, normal, cold, frozen, and deep ocean biomes. Nether and End retain their vanilla generators.
 
