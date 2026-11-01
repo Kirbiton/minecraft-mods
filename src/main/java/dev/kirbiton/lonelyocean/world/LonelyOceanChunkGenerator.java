@@ -99,7 +99,7 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
     private static BlockState terrainBlock(int x, int y, int z, int floorY, int bottomY,
             boolean land, IslandShape island, long seed) {
         if (y == MIN_Y) return Blocks.BEDROCK.defaultBlockState();
-        if (land && y < bottomY) return Blocks.AIR.defaultBlockState();
+        if (land && y < bottomY) return Blocks.WATER.defaultBlockState();
 
         if (!land && y < floorY - 4 && y > MIN_Y + 5 && UnderwaterCaves.isCave(x, y, z, seed)) {
             return Blocks.AIR.defaultBlockState();
