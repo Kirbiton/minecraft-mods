@@ -42,6 +42,7 @@ final class LargeIslandField {
         Island i = nearestContaining(x, z);
         return i == null ? Integer.MIN_VALUE : i.bottom(x, z);
     }
+    int biomeAt(int x, int z) { Island i = nearestContaining(x, z); return i == null ? -1 : i.biome(); }
     boolean isBeach(int x, int z) {
         Island i = nearestContaining(x, z);
         return i != null && i.beach(x, z);
@@ -60,9 +61,11 @@ final class LargeIslandField {
     private static final class Island {
         final int cx, cz, top, thickness;
         final double rx, rz, rot, a, b, c;
+        final int biome;
         Island(int cx,int cz,double rx,double rz,double rot,double a,double b,double c,int top,int thickness) {
             this.cx=cx; this.cz=cz; this.rx=rx; this.rz=rz; this.rot=rot;
             this.a=a; this.b=b; this.c=c; this.top=top; this.thickness=thickness;
+            this.biome=(int)Math.floorMod(mix(((long)cx << 32) ^ cz ^ Double.doubleToLongBits(a)), 5L);
         }
         double radius(int x,int z) {
             double dx=x-cx,dz=z-cz,co=Math.cos(rot),si=Math.sin(rot);
@@ -75,6 +78,7 @@ final class LargeIslandField {
         }
         boolean contains(int x,int z) { return radius(x,z)<=edge(x,z); }
         boolean beach(int x,int z) { double r=radius(x,z),e=edge(x,z); return r<=e && r>=e*0.91; }
+        int biome() { return biome; }
         int surface(int x,int z) {
             double r=radius(x,z),e=edge(x,z),in=Math.max(0,1-r/e);
             return top+(int)Math.round(2.5*in+0.7*Math.sin(a+r*7));
@@ -105,9 +109,20 @@ final class LargeIslandField {
                 if (tx < minX - 3 || tx > maxX + 3 || tz < minZ - 3 || tz > maxZ + 3) continue;
                 int ground = island.surface(tx, tz);
                 if (ground + 7 >= maxY || ground < minY) continue;
-                boolean birch = random.nextInt(4) == 0;
-                BlockState log = (birch ? Blocks.BIRCH_LOG : Blocks.OAK_LOG).defaultBlockState();
-                BlockState leaves = (birch ? Blocks.BIRCH_LEAVES : Blocks.OAK_LEAVES).defaultBlockState();
+                int treeType = island.biome == 1 ? 2 : island.biome == 2 ? 3
+                        : island.biome == 4 ? 1 : random.nextInt(4) == 0 ? 1 : 0;
+                BlockState log = switch (treeType) {
+                    case 1 -> Blocks.BIRCH_LOG.defaultBlockState();
+                    case 2 -> Blocks.SPRUCE_LOG.defaultBlockState();
+                    case 3 -> Blocks.JUNGLE_LOG.defaultBlockState();
+                    default -> Blocks.OAK_LOG.defaultBlockState();
+                };
+                BlockState leaves = switch (treeType) {
+                    case 1 -> Blocks.BIRCH_LEAVES.defaultBlockState();
+                    case 2 -> Blocks.SPRUCE_LEAVES.defaultBlockState();
+                    case 3 -> Blocks.JUNGLE_LEAVES.defaultBlockState();
+                    default -> Blocks.OAK_LEAVES.defaultBlockState();
+                };
                 for (int dy = 1; dy <= 4; dy++) setIfChunk(chunk, pos, tx, ground + dy, tz, log, false);
                 for (int dy = 3; dy <= 5; dy++) {
                     int radius = dy == 5 ? 1 : 2;
