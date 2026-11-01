@@ -18,6 +18,7 @@ Fabric mod for Minecraft 26.3 and Java 25.
 - A custom terrain generator that builds ocean water to sea level, a low seabed, and the seed-derived starter island.
 - Seed-dependent, flooded 3D cave pockets carved into the stone beneath the ocean floor, with deterministic unit tests.
 - Deterministic oak/birch tree placement on the island.
+- A Fabric server-level load hook sets the default world spawn to the island centre if the saved spawn is not already on safe island ground; it does not move returning players or override bed/anchor respawns.
 - A checkerboard biome source containing ocean-only biomes across warm, lukewarm, normal, cold, frozen, and deep variants.
 - The normal vanilla structure-set registry is explicitly retained by the custom generator.
 - Ocean biomes are added to the biome eligibility tags for ancient cities, trial chambers, and strongholds, allowing these structures to generate beneath the seabed.
@@ -28,7 +29,7 @@ Fabric mod for Minecraft 26.3 and Java 25.
 The current code compiles and packages successfully, but a full Minecraft client/server playtest has not yet been performed. In particular, these still need in-game verification or further work:
 
 - The world preset appearing and loading correctly in the Create World screen.
-- Exact initial player spawn on safe ground on the island.
+- First-join spawn flow and respawn behavior after restart (the default spawn is now explicitly set to the island centre, but this still needs an in-game playtest).
 - Structure placement in the custom generator (especially monuments, shipwrecks, ruins, buried treasure, ancient cities, trial chambers, and strongholds).
 - Tree canopy continuity at chunk edges and island appearance across many seeds.
 - In-game cave shape, connectivity, and exploration quality; coral distribution and terrain/biome visual transitions.
