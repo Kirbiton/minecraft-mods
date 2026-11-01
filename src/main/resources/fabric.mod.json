@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "lonely_ocean",
+  "version": "${version}",
+  "name": "Lonely Ocean: Survival",
+  "description": "A custom ocean-only survival world with one small, randomly shaped forest island.",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.kirbiton.lonelyocean.LonelyOcean"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
