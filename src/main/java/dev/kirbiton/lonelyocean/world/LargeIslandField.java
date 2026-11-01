@@ -77,11 +77,21 @@ final class LargeIslandField {
             return 1+0.055*Math.sin(angle*3+a)+0.035*Math.sin(angle*5+b)+0.02*Math.sin(angle*9+c);
         }
         boolean contains(int x,int z) { return radius(x,z)<=edge(x,z); }
-        boolean beach(int x,int z) { double r=radius(x,z),e=edge(x,z); return r<=e && r>=e*0.91; }
+        boolean beach(int x,int z) {
+            double r=radius(x,z), e=edge(x,z);
+            if (r > e || r < e * 0.88) return false;
+            double angle = Math.atan2(z-cz, x-cx);
+            double patches = Math.sin(angle*6+a) + 0.55*Math.sin(angle*11+b) + 0.3*Math.sin(angle*17+c);
+            return patches > 0.72;
+        }
         int biome() { return biome; }
         int surface(int x,int z) {
             double r=radius(x,z),e=edge(x,z),in=Math.max(0,1-r/e);
-            return top+(int)Math.round(2.5*in+0.7*Math.sin(a+r*7));
+            double broad = 5.8*Math.sin(x*0.026+a)*Math.cos(z*0.029+b)
+                    + 2.8*Math.sin((x+z)*0.052+c)
+                    + 1.4*Math.cos(x*0.091+a)*Math.sin(z*0.083+b);
+            double ridge = 2.2*Math.sin(Math.atan2(z-cz,x-cx)*4.0+a) * in;
+            return top+(int)Math.round(4.0*in+broad*in+ridge);
         }
         int bottom(int x,int z) {
             double r=radius(x,z),e=edge(x,z),in=Math.max(0,1-r/e);
@@ -109,8 +119,12 @@ final class LargeIslandField {
                 if (tx < minX - 3 || tx > maxX + 3 || tz < minZ - 3 || tz > maxZ + 3) continue;
                 int ground = island.surface(tx, tz);
                 if (ground + 7 >= maxY || ground < minY) continue;
-                int treeType = island.biome == 1 ? 2 : island.biome == 2 ? 3
-                        : island.biome == 4 ? 1 : random.nextInt(4) == 0 ? 1 : 0;
+                if (island.biome == 4) continue; // Mushroom fields stay tree-free.
+                int treeType = switch (island.biome) {
+                    case 1, 3 -> 2; // Taiga and snowy islands: spruce only.
+                    case 2 -> 3;    // Jungle islands: jungle trees only.
+                    default -> random.nextInt(4) == 0 ? 1 : 0; // Temperate forest.
+                };
                 BlockState log = switch (treeType) {
                     case 1 -> Blocks.BIRCH_LOG.defaultBlockState();
                     case 2 -> Blocks.SPRUCE_LOG.defaultBlockState();
