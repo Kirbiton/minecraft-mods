@@ -8,6 +8,8 @@ import java.util.concurrent.CompletableFuture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.ChunkPos;
@@ -22,11 +24,15 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.StructureManager;
 import net.minecraft.server.level.WorldGenRegion;
+import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
 
 /** A deterministic ocean-only overworld generator with a floating starter island. */
@@ -216,6 +222,61 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
         return new ChunkPos(island.centerX() >> 4, island.centerZ() >> 4);
     }
     @Override public int getSpawnHeight(LevelHeightAccessor accessor) { return SEA_LEVEL + 1; }
+
+    /**
+     * The vanilla ancient-city structure uses beard_box terrain adaptation.
+     * NoiseBasedChunkGenerator applies that through the beardifier density
+     * function; this hand-built terrain generator has no density pipeline, so
+     * reproduce the important result after the city pieces have been placed:
+     * hollow the gaps between pieces and a short irregular shell around them.
+     */
+    @Override
+    public void applyBiomeDecoration(WorldGenLevel level, ChunkAccess chunk, StructureManager structureManager) {
+        super.applyBiomeDecoration(level, chunk, structureManager);
+        if (!structureManager.shouldGenerateStructures()) return;
+
+        Registry<Structure> structures = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
+        Identifier ancientCityId = Identifier.fromNamespaceAndPath("minecraft", "ancient_city");
+        ChunkPos cp = chunk.getPos();
+
+        List<StructureStart> starts = structureManager.startsForStructure(cp.x(), cp.z(),
+                structure -> structures.getResourceKey(structure)
+                        .map(key -> key.identifier().equals(ancientCityId))
+                        .orElse(false));
+
+        for (StructureStart start : starts) {
+            if (!start.isValid()) continue;
+            BoundingBox box = start.getBoundingBox();
+            int minX = Math.max(cp.getMinBlockX(), box.minX() - 8);
+            int maxX = Math.min(cp.getMaxBlockX(), box.maxX() + 8);
+            int minZ = Math.max(cp.getMinBlockZ(), box.minZ() - 8);
+            int maxZ = Math.min(cp.getMaxBlockZ(), box.maxZ() + 8);
+            int minY = Math.max(MIN_Y + 1, box.minY() - 8);
+            int maxY = Math.min(SEA_LEVEL, box.maxY() + 8);
+
+            for (int x = minX; x <= maxX; x++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    for (int y = minY; y <= maxY; y++) {
+                        int dx = Math.max(Math.max(box.minX() - x, 0), x - box.maxX());
+                        int dy = Math.max(Math.max(box.minY() - y, 0), y - box.maxY());
+                        int dz = Math.max(Math.max(box.minZ() - z, 0), z - box.maxZ());
+                        double shellDistance = (dx * dx + dz * dz) / 64.0 + (dy * dy) / 36.0;
+                        if (dx != 0 || dy != 0 || dz != 0) {
+                            if (shellDistance > 1.0) continue;
+                        }
+
+                        BlockPos pos = new BlockPos(x, y, z);
+                        // Keep every structure piece intact; clear only the stone
+                        // between pieces and in the surrounding cavern envelope.
+                        if (!structureManager.structureHasPieceAt(pos, start)) {
+                            chunk.setBlockState(pos, Blocks.AIR.defaultBlockState(), 0);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Override public void spawnOriginalMobs(WorldGenRegion region) { }
     @Override public void addDebugScreenInfo(List<String> result, RandomState randomState, BlockPos feetPos,
             SamplerContext samplerContext) {
