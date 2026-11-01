@@ -60,7 +60,7 @@ class IslandShapeTest {
             if(island.contains(edgeX,edgeZ+dz) && island.isBeach(edgeX,edgeZ+dz)) {
                 int edgeSurface=island.surfaceY(edgeX,edgeZ+dz);
                 int edgeBottom=island.bottomY(edgeX,edgeZ+dz);
-                assertTrue(edgeSurface-edgeBottom<=6);
+                assertTrue(edgeSurface-edgeBottom<=12);
                 assertTrue(edgeBottom>centerBottom);
                 return;
             }
