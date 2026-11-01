@@ -141,7 +141,16 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
         if (land) {
             if (island != null ? island.isBeach(x, z) : archipelago.isBeach(x, z))
                 return Blocks.SAND.defaultBlockState();
-            return y == floorY ? Blocks.GRASS_BLOCK.defaultBlockState() : Blocks.DIRT.defaultBlockState();
+            int biome = island == null ? archipelago.biomeAt(x, z)
+                    : (int)Math.floorMod(coordinateHash(island.centerX(), island.centerZ(), seed), 5L);
+            if (y == floorY) return switch (biome) {
+                case 1 -> Blocks.PODZOL.defaultBlockState();
+                case 2 -> Blocks.MOSS_BLOCK.defaultBlockState();
+                case 3 -> Blocks.SNOW_BLOCK.defaultBlockState();
+                case 4 -> Blocks.MYCELIUM.defaultBlockState();
+                default -> Blocks.GRASS_BLOCK.defaultBlockState();
+            };
+            return Blocks.DIRT.defaultBlockState();
         }
         return (coordinateHash(x, z, seed) & 3L) == 0L
                 ? Blocks.GRAVEL.defaultBlockState() : Blocks.SAND.defaultBlockState();
