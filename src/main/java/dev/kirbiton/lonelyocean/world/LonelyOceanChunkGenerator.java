@@ -115,6 +115,10 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
         if (y == MIN_Y) {
             return Blocks.BEDROCK.defaultBlockState();
         }
+        if (!land && y < floorY - 4 && y > MIN_Y + 5
+                && UnderwaterCaves.isCave(x, y, z, seed)) {
+            return Blocks.WATER.defaultBlockState();
+        }
         if (y < floorY - 3) {
             return Blocks.STONE.defaultBlockState();
         }
