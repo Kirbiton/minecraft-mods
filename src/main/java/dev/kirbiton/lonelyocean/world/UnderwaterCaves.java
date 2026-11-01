@@ -1,18 +1,14 @@
 package dev.kirbiton.lonelyocean.world;
 
-/**
- * Deterministic 3D noise field for broad underground cave chambers.
- * The cavities are air-filled so vanilla monster-room features can connect
- * to them and place functional spawners.
- */
+/** Sparse, narrow underground passages with winding horizontal routes. */
 public final class UnderwaterCaves {
     private UnderwaterCaves() { }
 
     public static boolean isCave(int x, int y, int z, long seed) {
-        double broad = valueNoise(x, y, z, seed, 48.0, 30.0, 48.0);
+        double tunnel = valueNoise(x, y, z, seed, 22.0, 9.0, 22.0);
         double detail = valueNoise(x + 173, y - 91, z + 317,
-                seed ^ 0x6A09E667F3BCC909L, 24.0, 18.0, 24.0);
-        return broad > 0.55 && detail > 0.36;
+                seed ^ 0x6A09E667F3BCC909L, 10.0, 6.0, 10.0);
+        return tunnel > 0.67 && detail > 0.48;
     }
 
     private static double valueNoise(int x, int y, int z, long seed,
