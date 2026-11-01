@@ -15,10 +15,23 @@ Fabric mod project for Minecraft 26.3 and Java 25.
 
 ## Current status
 
-**Development scaffold only.** The repository currently contains the Fabric entry point and automated build workflow. The custom world preset, ocean-only terrain/biome source, starter-island feature, and spawn placement have **not yet been implemented**. A successful build at this stage would only confirm the project scaffold compiles; it would not provide the promised gameplay.
+**Early development; not a playable world-generation mod yet.**
+
+Implemented:
+- Fabric 26.3 project scaffold and automated GitHub Actions build.
+- Seed-deterministic starter-island geometry with variable center, rotation, dimensions, and irregular shoreline.
+- JUnit tests covering deterministic output, seed variation, approximate island dimensions across 100 seeds, and surface bounds.
+
+Not implemented yet:
+- Custom world preset and chunk generator.
+- Ocean-only biome source and terrain generation.
+- Island block placement, trees, beach materials, and player spawn placement.
+- Verification that vanilla ocean structures generate correctly in the custom world.
+
+A successful build confirms compilation and automated geometry tests only. It does **not** mean the planned world can be selected or played yet.
 
 ## Build
 
 GitHub Actions builds the project on pushes to the main branch and on manual workflow runs. The resulting JAR is uploaded as a workflow artifact.
 
-Toolchain: Minecraft 26.3, Java 25, Fabric Loader 0.19.5, Fabric API 0.162.0+26.3, Gradle 9.6, Fabric Loom 1.19-SNAPSHOT.
+Toolchain: Minecraft 26.3, Java 25, Fabric Loader 0.19.5, Fabric API 0.165.0+26.3, Gradle 9.8.2, Fabric Loom 1.19-SNAPSHOT.
