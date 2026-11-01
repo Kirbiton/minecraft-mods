@@ -71,7 +71,7 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
         return super.createBiomes(randomState, blender, structureManager, chunk).thenApply(generated -> {
             java.util.Map<String, Holder<Biome>> holders = new java.util.HashMap<>();
             for (Holder<Biome> holder : getBiomeSource().possibleBiomes()) {
-                holder.unwrapKey().ifPresent(key -> holders.put(key.location().toString(), holder));
+                holder.unwrapKey().ifPresent(key -> holders.put(key.identifier().toString(), holder));
             }
 
             Holder<Biome> forest = holders.get("minecraft:forest");
