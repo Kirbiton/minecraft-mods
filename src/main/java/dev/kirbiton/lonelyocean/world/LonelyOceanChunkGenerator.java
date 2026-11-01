@@ -69,6 +69,7 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
             Set<Holder<Biome>> possibleBiomes) {
         long seed = randomState.seed();
         IslandShape island = IslandShape.fromSeed(seed);
+        LargeIslandField archipelago = LargeIslandField.fromSeed(seed);
         ChunkPos cp = chunk.getPos();
         int minY = chunk.getMinY();
         int maxY = minY + chunk.getHeight();
@@ -78,12 +79,16 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
             for (int lz = 0; lz < 16; lz++) {
                 int z = cp.getMinBlockZ() + lz;
                 int surface = island.surfaceY(x, z);
+                boolean starterLand = surface != Integer.MIN_VALUE;
+                if (!starterLand) surface = archipelago.surfaceY(x, z);
                 boolean land = surface != Integer.MIN_VALUE;
                 int floor = land ? surface : oceanFloorY(x, z, seed);
-                int bottom = land ? island.bottomY(x, z) : minY;
+                int bottom = starterLand ? island.bottomY(x, z)
+                        : land ? archipelago.bottomY(x, z) : minY;
 
                 for (int y = minY; y <= floor && y < maxY; y++) {
-                    BlockState state = terrainBlock(x, y, z, floor, bottom, land, island, seed);
+                    BlockState state = terrainBlock(x, y, z, floor, bottom, land,
+                            starterLand ? island : null, archipelago, seed);
                     chunk.setBlockState(new BlockPos(x, y, z), state, 0);
                 }
                 if (!land) {
@@ -111,12 +116,12 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
     }
 
     private static BlockState terrainBlock(int x, int y, int z, int floorY, int bottomY,
-            boolean land, IslandShape island, long seed) {
+            boolean land, IslandShape island, LargeIslandField archipelago, long seed) {
         if (y <= MIN_Y + 4) { int thickness = 1 + (int) Math.floorMod(coordinateHash(x, z, seed), 5L); if (y <= MIN_Y + thickness - 1) return Blocks.BEDROCK.defaultBlockState(); }
         if (land && y < bottomY) {
             int seabed = oceanFloorY(x, z, seed);
             if (y > seabed) return Blocks.WATER.defaultBlockState();
-            return terrainBlock(x, y, z, seabed, MIN_Y, false, island, seed);
+            return terrainBlock(x, y, z, seabed, MIN_Y, false, island, archipelago, seed);
         }
 
         if (!land && y < floorY - 4 && y > MIN_Y + 5 && UnderwaterCaves.isCave(x, y, z, seed)) {
@@ -133,7 +138,8 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
         if (y < floorY - 3) return Blocks.STONE.defaultBlockState();
 
         if (land) {
-            if (island.isBeach(x, z)) return Blocks.SAND.defaultBlockState();
+            if (island != null ? island.isBeach(x, z) : archipelago.isBeach(x, z))
+                return Blocks.SAND.defaultBlockState();
             return y == floorY ? Blocks.GRASS_BLOCK.defaultBlockState() : Blocks.DIRT.defaultBlockState();
         }
         return (coordinateHash(x, z, seed) & 3L) == 0L
@@ -208,7 +214,9 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
     @Override
     public int getBaseHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor accessor, RandomState randomState) {
         IslandShape island = IslandShape.fromSeed(randomState.seed());
+        LargeIslandField archipelago = LargeIslandField.fromSeed(randomState.seed());
         int surface = island.surfaceY(x, z);
+        if (surface == Integer.MIN_VALUE) surface = archipelago.surfaceY(x, z);
         int floor = surface == Integer.MIN_VALUE ? oceanFloorY(x, z, randomState.seed()) : surface;
         if (type == Heightmap.Types.OCEAN_FLOOR || type == Heightmap.Types.OCEAN_FLOOR_WG) return floor + 1;
         return surface == Integer.MIN_VALUE ? SEA_LEVEL + 1 : surface + 1;
@@ -219,13 +227,18 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
         int minY = accessor.getMinY(), height = accessor.getHeight();
         BlockState[] states = new BlockState[height];
         IslandShape island = IslandShape.fromSeed(randomState.seed());
+        LargeIslandField archipelago = LargeIslandField.fromSeed(randomState.seed());
         int surface = island.surfaceY(x, z);
+        boolean starterLand = surface != Integer.MIN_VALUE;
+        if (!starterLand) surface = archipelago.surfaceY(x, z);
         boolean land = surface != Integer.MIN_VALUE;
         int floor = land ? surface : oceanFloorY(x, z, randomState.seed());
-        int bottom = land ? island.bottomY(x, z) : minY;
+        int bottom = starterLand ? island.bottomY(x, z)
+                : land ? archipelago.bottomY(x, z) : minY;
         for (int i = 0; i < height; i++) {
             int y = minY + i;
-            if (y <= floor) states[i] = terrainBlock(x, y, z, floor, bottom, land, island, randomState.seed());
+            if (y <= floor) states[i] = terrainBlock(x, y, z, floor, bottom, land,
+                    starterLand ? island : null, archipelago, randomState.seed());
             else if (!land && y <= SEA_LEVEL) states[i] = Blocks.WATER.defaultBlockState();
             else states[i] = Blocks.AIR.defaultBlockState();
         }
