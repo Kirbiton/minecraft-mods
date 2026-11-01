@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.QuartPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
@@ -17,6 +18,7 @@ import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.NoiseColumn;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeManager;
+import net.minecraft.world.level.biome.BiomeResolver;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -62,6 +64,60 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
     }
 
     @Override protected MapCodec<? extends ChunkGenerator> codec() { return CODEC; }
+
+    @Override
+    public CompletableFuture<ChunkAccess> createBiomes(RandomState randomState, Blender blender,
+            StructureManager structureManager, ChunkAccess chunk) {
+        return super.createBiomes(randomState, blender, structureManager, chunk).thenApply(generated -> {
+            java.util.Map<String, Holder<Biome>> holders = new java.util.HashMap<>();
+            for (Holder<Biome> holder : getBiomeSource().possibleBiomes()) {
+                holder.unwrapKey().ifPresent(key -> holders.put(key.location().toString(), holder));
+            }
+
+            Holder<Biome> forest = holders.get("minecraft:forest");
+            Holder<Biome> taiga = holders.get("minecraft:taiga");
+            Holder<Biome> jungle = holders.get("minecraft:jungle");
+            Holder<Biome> snowy = holders.get("minecraft:snowy_plains");
+            Holder<Biome> mushroom = holders.get("minecraft:mushroom_fields");
+            if (forest == null || taiga == null || jungle == null || snowy == null || mushroom == null) {
+                return generated;
+            }
+
+            long seed = randomState.seed();
+            IslandShape starter = IslandShape.fromSeed(seed);
+            LargeIslandField archipelago = LargeIslandField.fromSeed(seed);
+            BiomeResolver islandBiomes = (quartX, quartY, quartZ) -> {
+                int x = QuartPos.toBlock(quartX);
+                int y = QuartPos.toBlock(quartY);
+                int z = QuartPos.toBlock(quartZ);
+                int surface = starter.surfaceY(x, z);
+                if (surface != Integer.MIN_VALUE && y >= surface - 4) {
+                    int variant = (int) Math.floorMod(coordinateHash(starter.centerX(), starter.centerZ(), seed), 5L);
+                    return switch (variant) {
+                        case 1 -> taiga;
+                        case 2 -> jungle;
+                        case 3 -> snowy;
+                        case 4 -> mushroom;
+                        default -> forest;
+                    };
+                }
+                surface = archipelago.surfaceY(x, z);
+                if (surface != Integer.MIN_VALUE && y >= surface - 4) {
+                    return switch (archipelago.biomeAt(x, z)) {
+                        case 1 -> taiga;
+                        case 2 -> jungle;
+                        case 3 -> snowy;
+                        case 4 -> mushroom;
+                        default -> forest;
+                    };
+                }
+                return getBiomeSource().createUncachedResolver(randomState)
+                        .getNoiseBiome(quartX, quartY, quartZ);
+            };
+            generated.fillBiomesFromNoise(islandBiomes);
+            return generated;
+        });
+    }
 
     @Override
     public CompletableFuture<ChunkAccess> buildTerrain(ChunkAccess chunk, Blender blender, RandomState randomState,
