@@ -112,6 +112,7 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
             }
         }
         placeStarterTrees(chunk, island, seed, minY, maxY);
+        archipelago.placeTrees(chunk, seed, minY, maxY);
         return CompletableFuture.completedFuture(chunk);
     }
 
