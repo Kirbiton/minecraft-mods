@@ -16,6 +16,7 @@ Fabric mod for Minecraft 26.3 and Java 25.
 - Fabric 26.3 mod entry point and registered custom chunk-generator codec.
 - A world preset named **Lonely Ocean: Survival**, included in the normal world-preset selection tag.
 - A custom terrain generator that builds ocean water to sea level, a low seabed, and the seed-derived starter island.
+- Seed-dependent, flooded 3D cave pockets carved into the stone beneath the ocean floor, with deterministic unit tests.
 - Deterministic oak/birch tree placement on the island.
 - A checkerboard biome source containing ocean-only biomes across warm, lukewarm, normal, cold, frozen, and deep variants.
 - The normal vanilla structure-set registry is explicitly retained by the custom generator.
@@ -30,7 +31,7 @@ The current code compiles and packages successfully, but a full Minecraft client
 - Exact initial player spawn on safe ground on the island.
 - Structure placement in the custom generator (especially monuments, shipwrecks, ruins, buried treasure, ancient cities, trial chambers, and strongholds).
 - Tree canopy continuity at chunk edges and island appearance across many seeds.
-- Underwater cave and coral distribution, and terrain/biome visual transitions.
+- In-game cave shape, connectivity, and exploration quality; coral distribution and terrain/biome visual transitions.
 - Dedicated-server behavior.
 
 The current biome source uses vanilla checkerboard placement, so ocean biome regions are arranged in large square regions rather than smoothly blended climate zones. Existing saves are not rewritten; the preset affects newly created worlds only.
