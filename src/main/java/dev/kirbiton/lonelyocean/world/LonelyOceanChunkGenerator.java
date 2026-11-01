@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.ChunkPos;
@@ -19,6 +20,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.RandomState;
@@ -49,6 +52,16 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
                 BuiltInRegistries.CHUNK_GENERATOR,
                 Identifier.fromNamespaceAndPath("lonely_ocean", "ocean_island"),
                 CODEC);
+    }
+
+    /** Keep vanilla structure sets active and use the island chunk as the dimension origin. */
+    @Override
+    public ChunkGeneratorStructureState createState(
+            HolderLookup<StructureSet> structureSets,
+            RandomState randomState,
+            long legacyLevelSeed) {
+        return ChunkGeneratorStructureState.createForNormal(
+                randomState, legacyLevelSeed, getOrigin(randomState), getBiomeSource(), structureSets);
     }
 
     @Override
