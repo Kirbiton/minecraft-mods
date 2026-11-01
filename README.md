@@ -20,7 +20,7 @@ Fabric mod for Minecraft 26.3 and Java 25.
 - Deterministic oak/birch tree placement on the island.
 - A checkerboard biome source containing ocean-only biomes across warm, lukewarm, normal, cold, frozen, and deep variants.
 - The normal vanilla structure-set registry is explicitly retained by the custom generator.
-- Ocean biomes are added to the biome eligibility tags for ancient cities and trial chambers, allowing these structures to generate below the seabed.
+- Ocean biomes are added to the biome eligibility tags for ancient cities, trial chambers, and strongholds, allowing these structures to generate beneath the seabed.
 - Automated geometry tests and a GitHub Actions build.
 
 ## Not yet verified in the running game
