@@ -86,6 +86,7 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
             long seed = randomState.seed();
             IslandShape starter = IslandShape.fromSeed(seed);
             LargeIslandField archipelago = LargeIslandField.fromSeed(seed);
+            BiomeResolver vanillaResolver = getBiomeSource().createUncachedResolver(randomState);
             BiomeResolver islandBiomes = (quartX, quartY, quartZ) -> {
                 int x = QuartPos.toBlock(quartX);
                 int y = QuartPos.toBlock(quartY);
@@ -111,8 +112,7 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
                         default -> forest;
                     };
                 }
-                return getBiomeSource().createUncachedResolver(randomState)
-                        .getNoiseBiome(quartX, quartY, quartZ);
+                return vanillaResolver.getNoiseBiome(quartX, quartY, quartZ);
             };
             generated.fillBiomesFromNoise(islandBiomes);
             return generated;
