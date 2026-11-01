@@ -1,12 +1,12 @@
 package dev.kirbiton.lonelyocean;
 
+import dev.kirbiton.lonelyocean.world.LonelyOceanChunkGenerator;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Entry point for Lonely Ocean: Survival.
- * World generation and starter-island placement are not registered yet.
  */
 public final class LonelyOcean implements ModInitializer {
     public static final String MOD_ID = "lonely_ocean";
@@ -14,6 +14,7 @@ public final class LonelyOcean implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        LOGGER.info("Lonely Ocean: Survival initialized. World generation is not implemented yet.");
+        LonelyOceanChunkGenerator.register();
+        LOGGER.info("Lonely Ocean: Survival registered its ocean-island chunk generator.");
     }
 }
