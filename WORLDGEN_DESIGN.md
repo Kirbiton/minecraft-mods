@@ -13,6 +13,7 @@ The Overworld generator currently:
 - creates the single seed-positioned island above sea level;
 - places a small deterministic group of oak and birch trees;
 - reports the island's chunk as the generator origin to guide spawn search;
+- registers a Fabric server-level load callback that sets the world's default respawn point to the island centre when the current world spawn is outside the island; this leaves player beds/anchors untouched and avoids moving returning players;
 - exposes matching base-column and base-height calculations for heightmaps and structure placement;
 - explicitly creates the normal vanilla structure-placement state, preserving the registered vanilla structure sets;
 - extends the biome eligibility tags for ancient cities, trial chambers, and strongholds to include all ocean biome variants, so these structures can start below the seabed.
@@ -36,8 +37,9 @@ The current generator is an initial terrain implementation, not yet a fully vali
 5. Verify ancient cities, trial chambers, and strongholds generate beneath the seabed, with their portal rooms, loot, and internal pieces intact.
 6. Inspect the generated flooded cave pockets in-game for useful passage sizes and connectivity.
 7. Verify coral, kelp, and seagrass distribution.
-8. Test on a dedicated server and with common worldgen mods.
+8. Confirm the default world spawn is at the island centre on first world creation and after restart, while bed/anchor respawns and returning player positions remain unchanged.
+9. Test on a dedicated server and with common worldgen mods.
 
-The checkerboard biome source is a first pass. A later custom biome source can replace square biome regions with broader seed-dependent ocean climate zones. Tree canopies are currently kept inside their owning chunk, so edge canopies need refinement. Cave geometry is now generated deterministically, but its in-game shape and connectivity still require playtesting. A guaranteed player spawn still requires dedicated work.
+The checkerboard biome source is a first pass. A later custom biome source can replace square biome regions with broader seed-dependent ocean climate zones. Tree canopies are currently kept inside their owning chunk, so edge canopies need refinement. Cave geometry is now generated deterministically, but its in-game shape and connectivity still require playtesting. The default world spawn is now explicitly set through the Fabric level-load event, but the first-join spawn flow and respawn behavior still require in-game validation.
 
 Existing worlds are not modified by the world preset; it is intended for newly created worlds only.
