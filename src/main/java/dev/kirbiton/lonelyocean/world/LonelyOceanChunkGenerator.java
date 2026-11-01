@@ -40,7 +40,7 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
     public static final int MIN_Y = -64;
     public static final int WORLD_HEIGHT = 384;
     public static final int SEA_LEVEL = IslandShape.SEA_LEVEL;
-    private static final int OCEAN_FLOOR_BASE = 34;
+    private static final int OCEAN_FLOOR_BASE = 44;
 
     public static final MapCodec<LonelyOceanChunkGenerator> CODEC = RecordCodecBuilder.mapCodec(instance ->
             instance.group(BiomeSource.CODEC.fieldOf("biome_source").forGetter(ChunkGenerator::getBiomeSource))
@@ -98,7 +98,7 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
 
     private static BlockState terrainBlock(int x, int y, int z, int floorY, int bottomY,
             boolean land, IslandShape island, long seed) {
-        if (y == MIN_Y) return Blocks.BEDROCK.defaultBlockState();
+        if (y <= MIN_Y + 4) { int thickness = 1 + (int) Math.floorMod(coordinateHash(x, z, seed), 5L); if (y <= MIN_Y + thickness - 1) return Blocks.BEDROCK.defaultBlockState(); }
         if (land && y < bottomY) {
             int seabed = oceanFloorY(x, z, seed);
             if (y > seabed) return Blocks.WATER.defaultBlockState();
@@ -256,12 +256,12 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
             // between distant buildings and still leaves some pieces embedded.
             for (var piece : start.getPieces()) {
                 BoundingBox pieceBox = piece.getBoundingBox();
-                int minX = Math.max(cp.getMinBlockX(), pieceBox.minX() - 4);
-                int maxX = Math.min(cp.getMaxBlockX(), pieceBox.maxX() + 4);
-                int minZ = Math.max(cp.getMinBlockZ(), pieceBox.minZ() - 4);
-                int maxZ = Math.min(cp.getMaxBlockZ(), pieceBox.maxZ() + 4);
-                int minY = Math.max(MIN_Y + 1, pieceBox.minY() - 4);
-                int maxY = Math.min(SEA_LEVEL, pieceBox.maxY() + 4);
+                int minX = Math.max(cp.getMinBlockX(), pieceBox.minX() - 2);
+                int maxX = Math.min(cp.getMaxBlockX(), pieceBox.maxX() + 2);
+                int minZ = Math.max(cp.getMinBlockZ(), pieceBox.minZ() - 2);
+                int maxZ = Math.min(cp.getMaxBlockZ(), pieceBox.maxZ() + 2);
+                int minY = Math.max(MIN_Y + 1, pieceBox.minY() - 2);
+                int maxY = Math.min(SEA_LEVEL, pieceBox.maxY() + 2);
 
                 for (int x = minX; x <= maxX; x++) {
                     for (int z = minZ; z <= maxZ; z++) {
@@ -269,7 +269,7 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
                             int dx = Math.max(Math.max(pieceBox.minX() - x, 0), x - pieceBox.maxX());
                             int dy = Math.max(Math.max(pieceBox.minY() - y, 0), y - pieceBox.maxY());
                             int dz = Math.max(Math.max(pieceBox.minZ() - z, 0), z - pieceBox.maxZ());
-                            double distance = (dx * dx + dz * dz) / 16.0 + (dy * dy) / 16.0;
+                            double distance = (dx * dx + dz * dz) / 4.0 + (dy * dy) / 4.0;
                             if ((dx != 0 || dy != 0 || dz != 0) && distance > 1.0) continue;
 
                             BlockPos pos = new BlockPos(x, y, z);
