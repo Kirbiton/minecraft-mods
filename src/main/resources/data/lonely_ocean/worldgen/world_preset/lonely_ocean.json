@@ -5,8 +5,19 @@
       "generator": {
         "type": "lonely_ocean:ocean_island",
         "biome_source": {
-          "type": "minecraft:fixed",
-          "biome": "minecraft:ocean"
+          "type": "minecraft:checkerboard",
+          "biomes": [
+            "minecraft:warm_ocean",
+            "minecraft:lukewarm_ocean",
+            "minecraft:deep_lukewarm_ocean",
+            "minecraft:ocean",
+            "minecraft:deep_ocean",
+            "minecraft:cold_ocean",
+            "minecraft:deep_cold_ocean",
+            "minecraft:frozen_ocean",
+            "minecraft:deep_frozen_ocean"
+          ],
+          "scale": 4
         }
       }
     },
