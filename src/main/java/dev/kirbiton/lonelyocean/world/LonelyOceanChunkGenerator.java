@@ -29,121 +29,123 @@ import net.minecraft.world.level.StructureManager;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
 
-/**
- * A deterministic, ocean-only overworld terrain generator.
- * The selected biome source and vanilla structure pipeline are retained.
- */
+/** A deterministic ocean-only overworld generator with a floating starter island. */
 public final class LonelyOceanChunkGenerator extends ChunkGenerator {
     public static final int MIN_Y = -64;
     public static final int WORLD_HEIGHT = 384;
     public static final int SEA_LEVEL = IslandShape.SEA_LEVEL;
-    private static final int OCEAN_FLOOR_BASE = 32;
+    private static final int OCEAN_FLOOR_BASE = 34;
 
     public static final MapCodec<LonelyOceanChunkGenerator> CODEC = RecordCodecBuilder.mapCodec(instance ->
             instance.group(BiomeSource.CODEC.fieldOf("biome_source").forGetter(ChunkGenerator::getBiomeSource))
                     .apply(instance, LonelyOceanChunkGenerator::new));
 
-    public LonelyOceanChunkGenerator(BiomeSource biomeSource) {
-        super(biomeSource);
-    }
+    public LonelyOceanChunkGenerator(BiomeSource biomeSource) { super(biomeSource); }
 
     public static void register() {
-        net.minecraft.core.Registry.register(
-                BuiltInRegistries.CHUNK_GENERATOR,
-                Identifier.fromNamespaceAndPath("lonely_ocean", "ocean_island"),
-                CODEC);
+        net.minecraft.core.Registry.register(BuiltInRegistries.CHUNK_GENERATOR,
+                Identifier.fromNamespaceAndPath("lonely_ocean", "ocean_island"), CODEC);
     }
 
-    /** Keep vanilla structure sets active and use the island chunk as the dimension origin. */
     @Override
-    public ChunkGeneratorStructureState createState(
-            HolderLookup<StructureSet> structureSets,
-            RandomState randomState,
-            long legacyLevelSeed) {
+    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> structureSets,
+            RandomState randomState, long legacyLevelSeed) {
         return ChunkGeneratorStructureState.createForNormal(
                 randomState, legacyLevelSeed, getOrigin(randomState), getBiomeSource(), structureSets);
     }
 
-    @Override
-    protected MapCodec<? extends ChunkGenerator> codec() {
-        return CODEC;
-    }
+    @Override protected MapCodec<? extends ChunkGenerator> codec() { return CODEC; }
 
     @Override
-    public CompletableFuture<ChunkAccess> buildTerrain(
-            ChunkAccess chunk,
-            Blender blender,
-            RandomState randomState,
-            StructureManager structureManager,
-            BiomeManager biomeManager,
-            WorldGenRegion carverBiomeRegion,
+    public CompletableFuture<ChunkAccess> buildTerrain(ChunkAccess chunk, Blender blender, RandomState randomState,
+            StructureManager structureManager, BiomeManager biomeManager, WorldGenRegion carverBiomeRegion,
             Set<Holder<Biome>> possibleBiomes) {
         long seed = randomState.seed();
         IslandShape island = IslandShape.fromSeed(seed);
-        ChunkPos chunkPos = chunk.getPos();
+        ChunkPos cp = chunk.getPos();
         int minY = chunk.getMinY();
         int maxY = minY + chunk.getHeight();
 
-        for (int localX = 0; localX < 16; localX++) {
-            int worldX = chunkPos.getMinBlockX() + localX;
-            for (int localZ = 0; localZ < 16; localZ++) {
-                int worldZ = chunkPos.getMinBlockZ() + localZ;
-                int islandSurface = island.surfaceY(worldX, worldZ);
-                boolean land = islandSurface != Integer.MIN_VALUE;
-                int floorY = land ? islandSurface : oceanFloorY(worldX, worldZ, seed);
+        for (int lx = 0; lx < 16; lx++) {
+            int x = cp.getMinBlockX() + lx;
+            for (int lz = 0; lz < 16; lz++) {
+                int z = cp.getMinBlockZ() + lz;
+                int surface = island.surfaceY(x, z);
+                boolean land = surface != Integer.MIN_VALUE;
+                int floor = land ? surface : oceanFloorY(x, z, seed);
+                int bottom = land ? island.bottomY(x, z) : minY;
 
-                for (int y = minY; y <= floorY && y < maxY; y++) {
-                    BlockState state = terrainBlock(worldX, y, worldZ, floorY, land, island, seed);
-                    chunk.setBlockState(new BlockPos(worldX, y, worldZ), state, 0);
+                for (int y = minY; y <= floor && y < maxY; y++) {
+                    BlockState state = terrainBlock(x, y, z, floor, bottom, land, island, seed);
+                    chunk.setBlockState(new BlockPos(x, y, z), state, 0);
                 }
-
                 if (!land) {
-                    for (int y = floorY + 1; y <= SEA_LEVEL && y < maxY; y++) {
-                        if (y >= minY) {
-                            chunk.setBlockState(new BlockPos(worldX, y, worldZ), Blocks.WATER.defaultBlockState(), 0);
-                        }
+                    for (int y = floor + 1; y <= SEA_LEVEL && y < maxY; y++) {
+                        if (y >= minY) chunk.setBlockState(new BlockPos(x, y, z), Blocks.WATER.defaultBlockState(), 0);
                     }
                 }
             }
         }
-
         placeStarterTrees(chunk, island, seed, minY, maxY);
         return CompletableFuture.completedFuture(chunk);
     }
 
-    private static BlockState terrainBlock(int x, int y, int z, int floorY, boolean land, IslandShape island, long seed) {
-        if (y == MIN_Y) {
-            return Blocks.BEDROCK.defaultBlockState();
-        }
-        if (!land && y < floorY - 4 && y > MIN_Y + 5
-                && UnderwaterCaves.isCave(x, y, z, seed)) {
+    private static BlockState terrainBlock(int x, int y, int z, int floorY, int bottomY,
+            boolean land, IslandShape island, long seed) {
+        if (y == MIN_Y) return Blocks.BEDROCK.defaultBlockState();
+        if (land && y < bottomY) return Blocks.AIR.defaultBlockState();
+
+        if (!land && y < floorY - 4 && y > MIN_Y + 5 && UnderwaterCaves.isCave(x, y, z, seed)) {
             return Blocks.WATER.defaultBlockState();
         }
-        if (y < floorY - 3) {
-            return Blocks.STONE.defaultBlockState();
+
+        // Match the Overworld's stone -> deepslate transition around Y=0.
+        if (y <= -8) return Blocks.DEEPSLATE.defaultBlockState();
+        if (y <= 0) {
+            long hash = coordinateHash(x, y, z, seed);
+            return Math.floorMod(hash, 8L) < (0 - y)
+                    ? Blocks.DEEPSLATE.defaultBlockState() : Blocks.STONE.defaultBlockState();
         }
+        if (y < floorY - 3) return Blocks.STONE.defaultBlockState();
+
         if (land) {
-            if (island.isBeach(x, z)) {
-                return Blocks.SAND.defaultBlockState();
-            }
+            if (island.isBeach(x, z)) return Blocks.SAND.defaultBlockState();
             return y == floorY ? Blocks.GRASS_BLOCK.defaultBlockState() : Blocks.DIRT.defaultBlockState();
         }
-        return ((coordinateHash(x, z, seed) & 3L) == 0L)
-                ? Blocks.GRAVEL.defaultBlockState()
-                : Blocks.SAND.defaultBlockState();
+        return (coordinateHash(x, z, seed) & 3L) == 0L
+                ? Blocks.GRAVEL.defaultBlockState() : Blocks.SAND.defaultBlockState();
     }
 
+    /** Smooth low-amplitude seabed: broad noise, no independent per-block height lottery. */
     private static int oceanFloorY(int x, int z, long seed) {
-        return OCEAN_FLOOR_BASE + (int) Math.floorMod(coordinateHash(x, z, seed), 7L);
+        double n = noise2d(x, z, seed, 52.0);
+        return OCEAN_FLOOR_BASE + (int) Math.round((n - 0.5) * 4.0);
     }
+
+    private static double noise2d(int x, int z, long seed, double scale) {
+        double px = x / scale, pz = z / scale;
+        int x0 = (int) Math.floor(px), z0 = (int) Math.floor(pz);
+        double tx = smooth(px - x0), tz = smooth(pz - z0);
+        double a = lerp(hash01(x0, z0, seed), hash01(x0 + 1, z0, seed), tx);
+        double b = lerp(hash01(x0, z0 + 1, seed), hash01(x0 + 1, z0 + 1, seed), tx);
+        return lerp(a, b, tz);
+    }
+
+    private static double hash01(int x, int z, long seed) {
+        long h = coordinateHash(x, z, seed);
+        return (h >>> 11) * 0x1.0p-53;
+    }
+    private static double smooth(double t) { return t * t * (3.0 - 2.0 * t); }
+    private static double lerp(double a, double b, double t) { return a + (b - a) * t; }
 
     private static long coordinateHash(int x, int z, long seed) {
         long value = seed ^ ((long) x * 0x9E3779B185EBCA87L) ^ ((long) z * 0xC2B2AE3D27D4EB4FL);
-        value ^= value >>> 30;
-        value *= 0xBF58476D1CE4E5B9L;
-        value ^= value >>> 27;
-        value *= 0x94D049BB133111EBL;
+        value ^= value >>> 30; value *= 0xBF58476D1CE4E5B9L;
+        value ^= value >>> 27; value *= 0x94D049BB133111EBL;
         return value ^ (value >>> 31);
+    }
+    private static long coordinateHash(int x, int y, int z, long seed) {
+        return coordinateHash(x ^ (y * 0x632BE5AB), z + y * 0x85157AF5, seed);
     }
 
     private static void placeStarterTrees(ChunkAccess chunk, IslandShape island, long seed, int minY, int maxY) {
@@ -154,39 +156,25 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
             int treeX = island.centerX() + random.nextInt(-5, 6);
             int treeZ = island.centerZ() + random.nextInt(-5, 6);
             if (!island.contains(treeX, treeZ) || island.isBeach(treeX, treeZ)) {
-                treeX = island.centerX();
-                treeZ = island.centerZ();
+                treeX = island.centerX(); treeZ = island.centerZ();
             }
             if (treeX < pos.getMinBlockX() || treeX > pos.getMaxBlockX()
-                    || treeZ < pos.getMinBlockZ() || treeZ > pos.getMaxBlockZ()) {
-                continue;
-            }
+                    || treeZ < pos.getMinBlockZ() || treeZ > pos.getMaxBlockZ()) continue;
             int groundY = island.surfaceY(treeX, treeZ);
-            if (groundY == Integer.MIN_VALUE || groundY + 7 >= maxY || groundY < minY) {
-                continue;
-            }
+            if (groundY == Integer.MIN_VALUE || groundY + 7 >= maxY || groundY < minY) continue;
             boolean birch = random.nextBoolean();
             BlockState log = (birch ? Blocks.BIRCH_LOG : Blocks.OAK_LOG).defaultBlockState();
             BlockState leaves = (birch ? Blocks.BIRCH_LEAVES : Blocks.OAK_LEAVES).defaultBlockState();
-            for (int dy = 1; dy <= 4; dy++) {
-                chunk.setBlockState(new BlockPos(treeX, groundY + dy, treeZ), log, 0);
-            }
+            for (int dy = 1; dy <= 4; dy++) chunk.setBlockState(new BlockPos(treeX, groundY + dy, treeZ), log, 0);
             for (int dy = 3; dy <= 5; dy++) {
                 int radius = dy == 5 ? 1 : 2;
-                for (int dx = -radius; dx <= radius; dx++) {
-                    for (int dz = -radius; dz <= radius; dz++) {
-                        if (Math.abs(dx) + Math.abs(dz) > radius * 2 - 1) {
-                            continue;
-                        }
-                        int leafX = treeX + dx;
-                        int leafZ = treeZ + dz;
-                        if (leafX >= pos.getMinBlockX() && leafX <= pos.getMaxBlockX()
-                                && leafZ >= pos.getMinBlockZ() && leafZ <= pos.getMaxBlockZ()) {
-                            BlockPos leafPos = new BlockPos(leafX, groundY + dy, leafZ);
-                            if (chunk.getBlockState(leafPos).isAir()) {
-                                chunk.setBlockState(leafPos, leaves, 0);
-                            }
-                        }
+                for (int dx = -radius; dx <= radius; dx++) for (int dz = -radius; dz <= radius; dz++) {
+                    if (Math.abs(dx) + Math.abs(dz) > radius * 2 - 1) continue;
+                    int lx = treeX + dx, lz = treeZ + dz;
+                    if (lx >= pos.getMinBlockX() && lx <= pos.getMaxBlockX()
+                            && lz >= pos.getMinBlockZ() && lz <= pos.getMaxBlockZ()) {
+                        BlockPos p = new BlockPos(lx, groundY + dy, lz);
+                        if (chunk.getBlockState(p).isAir()) chunk.setBlockState(p, leaves, 0);
                     }
                 }
             }
@@ -194,71 +182,43 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
     }
 
     @Override
-    public int getBaseHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor heightAccessor, RandomState randomState) {
+    public int getBaseHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor accessor, RandomState randomState) {
         IslandShape island = IslandShape.fromSeed(randomState.seed());
         int surface = island.surfaceY(x, z);
         int floor = surface == Integer.MIN_VALUE ? oceanFloorY(x, z, randomState.seed()) : surface;
-        if (type == Heightmap.Types.OCEAN_FLOOR || type == Heightmap.Types.OCEAN_FLOOR_WG) {
-            return floor + 1;
-        }
+        if (type == Heightmap.Types.OCEAN_FLOOR || type == Heightmap.Types.OCEAN_FLOOR_WG) return floor + 1;
         return surface == Integer.MIN_VALUE ? SEA_LEVEL + 1 : surface + 1;
     }
 
     @Override
-    public NoiseColumn getBaseColumn(int x, int z, LevelHeightAccessor heightAccessor, RandomState randomState) {
-        int minY = heightAccessor.getMinY();
-        int height = heightAccessor.getHeight();
+    public NoiseColumn getBaseColumn(int x, int z, LevelHeightAccessor accessor, RandomState randomState) {
+        int minY = accessor.getMinY(), height = accessor.getHeight();
         BlockState[] states = new BlockState[height];
         IslandShape island = IslandShape.fromSeed(randomState.seed());
         int surface = island.surfaceY(x, z);
         boolean land = surface != Integer.MIN_VALUE;
         int floor = land ? surface : oceanFloorY(x, z, randomState.seed());
-        for (int index = 0; index < height; index++) {
-            int y = minY + index;
-            if (y <= floor) {
-                states[index] = terrainBlock(x, y, z, floor, land, island, randomState.seed());
-            } else if (!land && y <= SEA_LEVEL) {
-                states[index] = Blocks.WATER.defaultBlockState();
-            } else {
-                states[index] = Blocks.AIR.defaultBlockState();
-            }
+        int bottom = land ? island.bottomY(x, z) : minY;
+        for (int i = 0; i < height; i++) {
+            int y = minY + i;
+            if (y <= floor) states[i] = terrainBlock(x, y, z, floor, bottom, land, island, randomState.seed());
+            else if (!land && y <= SEA_LEVEL) states[i] = Blocks.WATER.defaultBlockState();
+            else states[i] = Blocks.AIR.defaultBlockState();
         }
         return new NoiseColumn(minY, states);
     }
 
-    @Override
-    public int getMinY() {
-        return MIN_Y;
-    }
-
-    @Override
-    public int getGenDepth() {
-        return WORLD_HEIGHT;
-    }
-
-    @Override
-    public int getSeaLevel() {
-        return SEA_LEVEL;
-    }
-
-    @Override
-    public ChunkPos getOrigin(RandomState randomState) {
+    @Override public int getMinY() { return MIN_Y; }
+    @Override public int getGenDepth() { return WORLD_HEIGHT; }
+    @Override public int getSeaLevel() { return SEA_LEVEL; }
+    @Override public ChunkPos getOrigin(RandomState randomState) {
         IslandShape island = IslandShape.fromSeed(randomState.seed());
         return new ChunkPos(island.centerX() >> 4, island.centerZ() >> 4);
     }
-
-    @Override
-    public int getSpawnHeight(LevelHeightAccessor heightAccessor) {
-        return SEA_LEVEL + 1;
-    }
-
-    @Override
-    public void spawnOriginalMobs(WorldGenRegion worldGenRegion) {
-        // Natural mob spawning is handled by the normal biome spawn pipeline.
-    }
-
-    @Override
-    public void addDebugScreenInfo(List<String> result, RandomState randomState, BlockPos feetPos, SamplerContext samplerContext) {
+    @Override public int getSpawnHeight(LevelHeightAccessor accessor) { return SEA_LEVEL + 1; }
+    @Override public void spawnOriginalMobs(WorldGenRegion region) { }
+    @Override public void addDebugScreenInfo(List<String> result, RandomState randomState, BlockPos feetPos,
+            SamplerContext samplerContext) {
         IslandShape island = IslandShape.fromSeed(randomState.seed());
         result.add("Lonely Ocean island: " + island.centerX() + ", " + island.centerZ());
     }
