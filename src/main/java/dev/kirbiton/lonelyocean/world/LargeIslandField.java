@@ -87,11 +87,14 @@ final class LargeIslandField {
         int biome() { return biome; }
         int surface(int x,int z) {
             double r=radius(x,z),e=edge(x,z),in=Math.max(0,1-r/e);
-            double broad = 5.8*Math.sin(x*0.026+a)*Math.cos(z*0.029+b)
-                    + 2.8*Math.sin((x+z)*0.052+c)
-                    + 1.4*Math.cos(x*0.091+a)*Math.sin(z*0.083+b);
-            double ridge = 2.2*Math.sin(Math.atan2(z-cz,x-cx)*4.0+a) * in;
-            return top+(int)Math.round(4.0*in+broad*in+ridge);
+            double broad = 6.2*Math.sin(x*0.026+a)*Math.cos(z*0.029+b)
+                    + 3.0*Math.sin((x+z)*0.052+c)
+                    + 1.8*Math.cos(x*0.091+a)*Math.sin(z*0.083+b);
+            double ridge = 2.8*Math.sin(Math.atan2(z-cz,x-cx)*4.0+a) * in;
+            double height = IslandShape.SEA_LEVEL + 1
+                    + (top - IslandShape.SEA_LEVEL - 1) * Math.pow(in, 0.62)
+                    + broad * in + ridge;
+            return (int)Math.round(height);
         }
         int bottom(int x,int z) {
             double r=radius(x,z),e=edge(x,z),in=Math.max(0,1-r/e);
