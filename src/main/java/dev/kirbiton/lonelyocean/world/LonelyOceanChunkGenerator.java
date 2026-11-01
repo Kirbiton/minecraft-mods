@@ -254,7 +254,7 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
             // Carve a small chamber around each individual city piece. Using
             // the whole city's bounding box creates enormous empty halls
             // between distant buildings and still leaves some pieces embedded.
-            for (var piece : start.getPieces().pieces()) {
+            for (var piece : start.getPieces()) {
                 BoundingBox pieceBox = piece.getBoundingBox();
                 int minX = Math.max(cp.getMinBlockX(), pieceBox.minX() - 4);
                 int maxX = Math.min(cp.getMaxBlockX(), pieceBox.maxX() + 4);
