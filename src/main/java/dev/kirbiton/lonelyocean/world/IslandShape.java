@@ -41,7 +41,7 @@ public final class IslandShape {
         if (surface == Integer.MIN_VALUE) return Integer.MIN_VALUE;
         double r = normalizedRadius(x, z), edge = edgeRadius(angle(x, z));
         double inland = Math.max(0.0, 1.0 - r / edge);
-        int thickness = 3 + (int) Math.round(24.0 * Math.pow(inland, 0.72));
+        int thickness = 3 + (int) Math.round(14.0 * Math.pow(inland, 0.72));
         return surface - thickness;
     }
 
