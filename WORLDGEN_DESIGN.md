@@ -1,38 +1,37 @@
-# Minecraft 26.3 world-generation implementation notes
+# Minecraft 26.3 world-generation implementation
 
-This note records the API direction for the custom world. It is intentionally not a claim that world generation is implemented.
+## Current implementation
 
-## Why a custom generator is needed
+The project now registers a custom ChunkGenerator codec and provides a world preset in `data/lonely_ocean/worldgen/world_preset/lonely_ocean.json`.
 
-A normal noise generator can create ocean-heavy terrain, but the core requirement is stricter: the surface world must contain exactly one small, seed-positioned island and no other naturally generated land. A deterministic island mask is therefore required at the terrain stage, not as a rare decoration feature. A decoration feature cannot reliably remove continents or guarantee the island exists before spawn selection and structure placement.
+The Overworld generator currently:
+- uses the world seed from RandomState to derive IslandShape;
+- creates a low ocean floor between Y=32 and Y=38;
+- fills the ocean with water up to sea level Y=63;
+- creates the single seed-positioned island above sea level;
+- places a small deterministic group of oak and birch trees;
+- reports the island's chunk as the generator origin to guide spawn search;
+- exposes matching base-column and base-height calculations for heightmaps and structure placement.
 
-## 26.3 API facts checked
+The preset's biome source uses vanilla checkerboard selection over warm, lukewarm, normal, cold, frozen, and deep ocean biomes. Nether and End retain their vanilla generators.
 
-The 26.3 Mojang-mapped ChunkGenerator contract includes:
-- buildTerrain(...) returning CompletableFuture<ChunkAccess>;
-- getBaseHeight(...) and getBaseColumn(...), which must agree with generated terrain;
-- getSeaLevel(), getMinY(), and getGenDepth();
-- spawnOriginalMobs(...);
-- a MapCodec returned by codec().
+## Important implementation details
 
-The generator base class still exposes structure creation/reference methods. The custom implementation must preserve the vanilla structure pipeline and supply a valid structure state rather than simply placing water and island blocks.
+A custom generator is needed because the world must have no other natural surface land. A decoration feature alone cannot remove continents or guarantee the starter island exists before spawn selection.
 
-A custom BiomeSource must provide:
-- a MapCodec through codec();
-- all possible biome holders through collectPossibleBiomes();
-- a resolver for biome sampling.
+Minecraft 26.3's Mojang-mapped ChunkGenerator contract includes buildTerrain, getBaseHeight, getBaseColumn, getSeaLevel, getMinY, getGenDepth, spawnOriginalMobs, and codec. The current implementation overrides these terrain-related methods and leaves vanilla structure-generation methods inherited from ChunkGenerator.
 
-Minecraft 26.3 changed several world-generation registries and contracts. In particular, the old configured-feature pattern is replaced by the Feature/FEATURE_TYPE model, and material rules replace surface rules. Do not copy pre-26.3 registration examples directly.
+## Known limitations and required playtests
 
-## Planned implementation sequence
+The current generator is an initial terrain implementation, not yet a fully validated release.
 
-1. Resolve biome holders from the worldgen registry access and build an ocean-only biome source that chooses among warm, lukewarm, normal, cold, and frozen ocean families, including deep variants.
-2. Implement the terrain generator using the existing seed-derived IslandShape. Every chunk column outside the island mask becomes ocean floor below sea level; inside the mask it becomes the small island profile. Generate a stable seabed and water column.
-3. Make getBaseHeight and getBaseColumn return the same terrain model as buildTerrain; structure placement and spawn searches depend on these methods.
-4. Preserve vanilla structure sets and decoration stages, then test monuments, shipwrecks, ruins, buried treasure, coral, and underwater caves.
-5. Add the world preset and ensure only new worlds use it. Existing save files must remain unchanged.
-6. Add automated tests for seed repeatability, chunk-boundary continuity, ocean-only surface bounds, and spawn safety; then test the actual game.
+1. Start Minecraft 26.3 with Fabric and confirm the preset appears in the world-type selector.
+2. Create new worlds with multiple seeds and confirm there is exactly one surface island and that spawn lands safely on it.
+3. Check chunk edges, heightmaps, and biome transitions.
+4. Verify ocean monuments, shipwrecks, ocean ruins, and buried treasure with the chosen ocean biomes and inherited vanilla structure pipeline.
+5. Verify coral, kelp, seagrass, and underwater cave distribution.
+6. Test on a dedicated server and with common worldgen mods.
 
-## Important limitations
+The checkerboard biome source is a first pass. A later custom biome source can replace square biome regions with broader seed-dependent ocean climate zones. Tree canopies are currently kept inside their owning chunk, so edge canopies need refinement. Underwater caves and a guaranteed player spawn still require dedicated work.
 
-The geometry helper currently chooses an island center in a bounded area around world origin. It does not yet receive the real world seed from Minecraft's generator lifecycle, write blocks into chunks, register a world preset, or set the player's spawn. Those are separate integration tasks.
+Existing worlds are not modified by the world preset; it is intended for newly created worlds only.
