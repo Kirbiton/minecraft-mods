@@ -7,6 +7,8 @@ The project now registers a custom ChunkGenerator codec and provides a world pre
 The Overworld generator currently:
 - uses the world seed from RandomState to derive IslandShape;
 - creates a low ocean floor between Y=32 and Y=38;
+- carves seed-dependent, water-filled 3D cave pockets beneath the seabed while preserving the bedrock floor;
+- uses the same cave field in chunk terrain and base-column sampling, keeping the terrain model consistent for height queries;
 - fills the ocean with water up to sea level Y=63;
 - creates the single seed-positioned island above sea level;
 - places a small deterministic group of oak and birch trees;
@@ -32,9 +34,10 @@ The current generator is an initial terrain implementation, not yet a fully vali
 3. Check chunk edges, heightmaps, and biome transitions.
 4. Verify ocean monuments, shipwrecks, ocean ruins, and buried treasure with the chosen ocean biomes and inherited vanilla structure pipeline.
 5. Verify ancient cities, trial chambers, and strongholds generate beneath the seabed, with their portal rooms, loot, and internal pieces intact.
-6. Verify coral, kelp, seagrass, and underwater cave distribution.
-7. Test on a dedicated server and with common worldgen mods.
+6. Inspect the generated flooded cave pockets in-game for useful passage sizes and connectivity.
+7. Verify coral, kelp, and seagrass distribution.
+8. Test on a dedicated server and with common worldgen mods.
 
-The checkerboard biome source is a first pass. A later custom biome source can replace square biome regions with broader seed-dependent ocean climate zones. Tree canopies are currently kept inside their owning chunk, so edge canopies need refinement. Underwater caves and a guaranteed player spawn still require dedicated work.
+The checkerboard biome source is a first pass. A later custom biome source can replace square biome regions with broader seed-dependent ocean climate zones. Tree canopies are currently kept inside their owning chunk, so edge canopies need refinement. Cave geometry is now generated deterministically, but its in-game shape and connectivity still require playtesting. A guaranteed player spawn still requires dedicated work.
 
 Existing worlds are not modified by the world preset; it is intended for newly created worlds only.
