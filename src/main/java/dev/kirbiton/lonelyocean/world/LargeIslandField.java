@@ -1,6 +1,11 @@
 package dev.kirbiton.lonelyocean.world;
 
 import java.util.SplittableRandom;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
 
 /** Seeded archipelago field: one irregular island in each jittered 900-block cell. */
 final class LargeIslandField {
@@ -79,6 +84,49 @@ final class LargeIslandField {
             return Math.max(44,surface(x,z)-(3+(int)Math.round(thickness*Math.pow(in,0.7))));
         }
     }
+
+    void placeTrees(ChunkAccess chunk, long worldSeed, int minY, int maxY) {
+        ChunkPos pos = chunk.getPos();
+        int minX = pos.getMinBlockX(), maxX = pos.getMaxBlockX();
+        int minZ = pos.getMinBlockZ(), maxZ = pos.getMaxBlockZ();
+        int gx0 = Math.floorDiv(minX, CELL), gx1 = Math.floorDiv(maxX, CELL);
+        int gz0 = Math.floorDiv(minZ, CELL), gz1 = Math.floorDiv(maxZ, CELL);
+        for (int gx = gx0 - 1; gx <= gx1 + 1; gx++) for (int gz = gz0 - 1; gz <= gz1 + 1; gz++) {
+            Island island = at(gx, gz);
+            if (island == null) continue;
+            long key = mix(worldSeed ^ ((long) gx * 0x632BE59BD9B4E019L)
+                    ^ ((long) gz * 0x9E3779B97F4A7C15L) ^ 0x54524545534C4F4EL);
+            SplittableRandom random = new SplittableRandom(key);
+            int count = 9 + random.nextInt(8);
+            for (int n = 0; n < count; n++) {
+                int tx = island.cx + random.nextInt(-82, 83);
+                int tz = island.cz + random.nextInt(-82, 83);
+                if (!island.contains(tx, tz) || island.beach(tx, tz)) continue;
+                if (tx < minX - 3 || tx > maxX + 3 || tz < minZ - 3 || tz > maxZ + 3) continue;
+                int ground = island.surface(tx, tz);
+                if (ground + 7 >= maxY || ground < minY) continue;
+                boolean birch = random.nextInt(4) == 0;
+                BlockState log = (birch ? Blocks.BIRCH_LOG : Blocks.OAK_LOG).defaultBlockState();
+                BlockState leaves = (birch ? Blocks.BIRCH_LEAVES : Blocks.OAK_LEAVES).defaultBlockState();
+                for (int dy = 1; dy <= 4; dy++) setIfChunk(chunk, pos, tx, ground + dy, tz, log, false);
+                for (int dy = 3; dy <= 5; dy++) {
+                    int radius = dy == 5 ? 1 : 2;
+                    for (int dx = -radius; dx <= radius; dx++) for (int dz = -radius; dz <= radius; dz++) {
+                        if (Math.abs(dx) + Math.abs(dz) > radius * 2 - 1) continue;
+                        setIfChunk(chunk, pos, tx + dx, ground + dy, tz + dz, leaves, true);
+                    }
+                }
+            }
+        }
+    }
+    private static void setIfChunk(ChunkAccess chunk, ChunkPos pos, int x, int y, int z,
+            BlockState state, boolean onlyAir) {
+        if (x < pos.getMinBlockX() || x > pos.getMaxBlockX()
+                || z < pos.getMinBlockZ() || z > pos.getMaxBlockZ()) return;
+        BlockPos blockPos = new BlockPos(x, y, z);
+        if (!onlyAir || chunk.getBlockState(blockPos).isAir()) chunk.setBlockState(blockPos, state, 0);
+    }
+
     private static long mix(long v) {
         v^=v>>>30; v*=0xbf58476d1ce4e5b9L; v^=v>>>27; v*=0x94d049bb133111ebL; return v^(v>>>31);
     }
