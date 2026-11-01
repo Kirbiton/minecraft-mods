@@ -1,37 +1,38 @@
 # Lonely Ocean: Survival
 
-Fabric mod project for Minecraft 26.3 and Java 25.
+Fabric mod for Minecraft 26.3 and Java 25.
 
-## Planned gameplay
+## Intended gameplay
 
-- A dedicated world preset for an ocean-only survival world.
-- Oceanic biomes throughout the world: warm, lukewarm, normal, cold, frozen, and deep variants.
-- No naturally generated continents or additional surface islands.
-- One small starter island, generated deterministically from the world seed.
-- The island's position and outline vary between worlds; target diameter is approximately 20–35 blocks.
-- A grassy/dirt island with 2–3 oak or birch trees and a modest sandy shore.
-- Player spawn safely placed on the starter island.
-- Vanilla ocean structures such as monuments, shipwrecks, and ocean ruins retained.
+- A dedicated world preset available in the new-world screen.
+- A single small forest island, approximately 20–35 blocks across, at a seed-dependent location.
+- Ocean-only surface terrain around the island.
+- Warm, lukewarm, normal, cold, and frozen ocean biome families, including deep variants.
+- 2–3 oak or birch trees and a sandy shoreline.
+- Ocean structures and underwater exploration while preserving vanilla structure generation.
 
-## Current status
+## Implemented
 
-**Early development; not a playable world-generation mod yet.**
+- Fabric 26.3 mod entry point and registered custom chunk-generator codec.
+- A world preset named **Lonely Ocean: Survival**, included in the normal world-preset selection tag.
+- A custom terrain generator that builds ocean water to sea level, a low seabed, and the seed-derived starter island.
+- Deterministic oak/birch tree placement on the island.
+- A checkerboard biome source containing ocean-only biomes across warm, lukewarm, normal, cold, frozen, and deep variants.
+- Automated geometry tests and a GitHub Actions build.
 
-Implemented:
-- Fabric 26.3 project scaffold and automated GitHub Actions build.
-- Seed-deterministic starter-island geometry with variable center, rotation, dimensions, and irregular shoreline.
-- JUnit tests covering deterministic output, seed variation, approximate island dimensions across 100 seeds, and surface bounds.
+## Not yet verified in the running game
 
-Not implemented yet:
-- Custom world preset and chunk generator.
-- Ocean-only biome source and terrain generation.
-- Island block placement, trees, beach materials, and player spawn placement.
-- Verification that vanilla ocean structures generate correctly in the custom world.
+The current code compiles and packages successfully, but a full Minecraft client/server playtest has not yet been performed. In particular, these still need in-game verification or further work:
 
-A successful build confirms compilation and automated geometry tests only. It does **not** mean the planned world can be selected or played yet.
+- The world preset appearing and loading correctly in the Create World screen.
+- Exact initial player spawn on safe ground on the island.
+- Structure placement in the custom generator (especially monuments, shipwrecks, ruins, and buried treasure).
+- Tree canopy continuity at chunk edges and island appearance across many seeds.
+- Underwater cave and coral distribution, and terrain/biome visual transitions.
+- Dedicated-server behavior.
+
+The current biome source uses vanilla checkerboard placement, so ocean biome regions are arranged in large square regions rather than smoothly blended climate zones. Existing saves are not rewritten; the preset affects newly created worlds only.
 
 ## Build
 
-GitHub Actions builds the project on pushes to the main branch and on manual workflow runs. The resulting JAR is uploaded as a workflow artifact.
-
-Toolchain: Minecraft 26.3, Java 25, Fabric Loader 0.19.5, Fabric API 0.165.0+26.3, Gradle 9.8.2, Fabric Loom 1.19-SNAPSHOT.
+GitHub Actions builds the project on pushes to the main branch and on manual workflow runs. Toolchain: Minecraft 26.3, Java 25, Fabric Loader 0.19.5, Fabric API 0.165.0+26.3, Gradle 9.8.2, Fabric Loom 1.19-SNAPSHOT.
