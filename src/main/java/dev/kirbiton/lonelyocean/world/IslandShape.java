@@ -25,13 +25,21 @@ public final class IslandShape {
     public boolean contains(int x, int z) { return normalizedRadius(x, z) <= edgeRadius(angle(x, z)); }
     public boolean isBeach(int x, int z) {
         double r = normalizedRadius(x, z), edge = edgeRadius(angle(x, z));
-        return r <= edge && r >= edge * 0.78;
+        if (r > edge || r < edge * 0.84) return false;
+        double a = angle(x, z);
+        double patches = Math.sin(a * 6.0 + phaseA) + 0.55 * Math.sin(a * 11.0 + phaseB)
+                + 0.3 * Math.sin(a * 17.0 + phaseC);
+        return patches > 0.62;
     }
     public int surfaceY(int x, int z) {
         double r = normalizedRadius(x, z), edge = edgeRadius(angle(x, z));
         if (r > edge) return Integer.MIN_VALUE;
         double inland = Math.max(0.0, 1.0 - r / edge);
-        double hill = 1.0 + 3.2 * inland + 0.65 * Math.sin(phaseA + r * 8.0);
+        double dx = x - centerX, dz = z - centerZ;
+        double broad = 2.8 * Math.sin(x * 0.11 + phaseA) * Math.cos(z * 0.13 + phaseB)
+                + 1.4 * Math.sin((x + z) * 0.21 + phaseC);
+        double hill = 1.0 + 4.0 * inland + broad * inland
+                + 1.1 * Math.sin(phaseA + r * 8.0);
         return SEA_LEVEL + (int) Math.round(hill);
     }
 
