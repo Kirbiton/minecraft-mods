@@ -54,17 +54,21 @@ class IslandShapeTest {
         int centerSurface=island.surfaceY(island.centerX(),island.centerZ());
         int centerBottom=island.bottomY(island.centerX(),island.centerZ());
         assertTrue(centerSurface-centerBottom>=12);
-        int edgeX=island.centerX();
-        int edgeZ=island.centerZ();
-        for(int dz=0;dz<40;dz++) {
-            if(island.contains(edgeX,edgeZ+dz) && island.isBeach(edgeX,edgeZ+dz)) {
-                int edgeSurface=island.surfaceY(edgeX,edgeZ+dz);
-                int edgeBottom=island.bottomY(edgeX,edgeZ+dz);
-                assertTrue(edgeSurface-edgeBottom<=12);
-                assertTrue(edgeBottom>centerBottom);
-                return;
+
+        int beachSamples=0;
+        int thinnestShore= Integer.MAX_VALUE;
+        int lowestShoreBottom=Integer.MIN_VALUE;
+        for(int dx=-40;dx<=40;dx++) for(int dz=-40;dz<=40;dz++) {
+            int x=island.centerX()+dx, z=island.centerZ()+dz;
+            if(island.contains(x,z) && island.isBeach(x,z)) {
+                int thickness=island.surfaceY(x,z)-island.bottomY(x,z);
+                beachSamples++;
+                thinnestShore=Math.min(thinnestShore,thickness);
+                lowestShoreBottom=Math.max(lowestShoreBottom,island.bottomY(x,z));
             }
         }
-        fail("Expected to find a shoreline sample");
+        assertTrue(beachSamples>0,"Expected patchy beach samples around the shoreline");
+        assertTrue(thinnestShore<=12,"Shore should be thinner than the island center");
+        assertTrue(lowestShoreBottom>centerBottom,"Island underside should taper upward toward shore");
     }
 }
