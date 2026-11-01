@@ -86,7 +86,17 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
             long seed = randomState.seed();
             IslandShape starter = IslandShape.fromSeed(seed);
             LargeIslandField archipelago = LargeIslandField.fromSeed(seed);
-            BiomeResolver vanillaResolver = getBiomeSource().createUncachedResolver(randomState);
+            Holder<Biome> warm = holders.get("minecraft:warm_ocean");
+            Holder<Biome> lukewarm = holders.get("minecraft:lukewarm_ocean");
+            Holder<Biome> deepLukewarm = holders.get("minecraft:deep_lukewarm_ocean");
+            Holder<Biome> ocean = holders.get("minecraft:ocean");
+            Holder<Biome> deepOcean = holders.get("minecraft:deep_ocean");
+            Holder<Biome> cold = holders.get("minecraft:cold_ocean");
+            Holder<Biome> deepCold = holders.get("minecraft:deep_cold_ocean");
+            Holder<Biome> frozen = holders.get("minecraft:frozen_ocean");
+            Holder<Biome> deepFrozen = holders.get("minecraft:deep_frozen_ocean");
+            Holder<Biome> lush = holders.get("minecraft:lush_caves");
+            Holder<Biome> deepDark = holders.get("minecraft:deep_dark");
             BiomeResolver islandBiomes = (quartX, quartY, quartZ) -> {
                 int x = QuartPos.toBlock(quartX);
                 int y = QuartPos.toBlock(quartY);
@@ -94,25 +104,25 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
                 int surface = starter.surfaceY(x, z);
                 if (surface != Integer.MIN_VALUE && y >= surface - 4) {
                     int variant = (int) Math.floorMod(coordinateHash(starter.centerX(), starter.centerZ(), seed), 5L);
-                    return switch (variant) {
-                        case 1 -> taiga;
-                        case 2 -> jungle;
-                        case 3 -> snowy;
-                        case 4 -> mushroom;
-                        default -> forest;
-                    };
+                    return landBiome(variant, forest, taiga, jungle, snowy, mushroom);
                 }
                 surface = archipelago.surfaceY(x, z);
                 if (surface != Integer.MIN_VALUE && y >= surface - 4) {
-                    return switch (archipelago.biomeAt(x, z)) {
-                        case 1 -> taiga;
-                        case 2 -> jungle;
-                        case 3 -> snowy;
-                        case 4 -> mushroom;
-                        default -> forest;
-                    };
+                    return landBiome(archipelago.biomeAt(x, z), forest, taiga, jungle, snowy, mushroom);
                 }
-                return vanillaResolver.getNoiseBiome(quartX, quartY, quartZ);
+                int floor = oceanFloorY(x, z, seed);
+                if (y < floor - 4 && UnderwaterCaves.isCave(x, y, z, seed)) {
+                    if (y < -28 && deepDark != null) return deepDark;
+                    if (lush != null) return lush;
+                }
+                double thermal = noise2d(x, z, seed ^ 0x4F4345414E54454DL, 1700.0);
+                double depth = noise2d(x, z, seed ^ 0x444545504F434541L, 520.0);
+                boolean isDeep = depth > 0.48;
+                if (thermal > 0.82) return isDeep ? deepLukewarm : warm;
+                if (thermal > 0.62) return isDeep ? deepLukewarm : lukewarm;
+                if (thermal > 0.40) return isDeep ? deepOcean : ocean;
+                if (thermal > 0.19) return isDeep ? deepCold : cold;
+                return isDeep ? deepFrozen : frozen;
             };
             generated.fillBiomesFromNoise(islandBiomes);
             return generated;
@@ -170,6 +180,17 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
         placeStarterTrees(chunk, island, seed, minY, maxY);
         archipelago.placeTrees(chunk, seed, minY, maxY);
         return CompletableFuture.completedFuture(chunk);
+    }
+
+    private static Holder<Biome> landBiome(int biome, Holder<Biome> forest, Holder<Biome> taiga,
+            Holder<Biome> jungle, Holder<Biome> snowy, Holder<Biome> mushroom) {
+        return switch (biome) {
+            case 1 -> taiga;
+            case 2 -> jungle;
+            case 3 -> snowy;
+            case 4 -> mushroom;
+            default -> forest;
+        };
     }
 
     private static BlockState terrainBlock(int x, int y, int z, int floorY, int bottomY,
