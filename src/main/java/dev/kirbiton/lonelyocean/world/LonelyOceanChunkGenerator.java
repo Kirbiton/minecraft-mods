@@ -99,7 +99,11 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
     private static BlockState terrainBlock(int x, int y, int z, int floorY, int bottomY,
             boolean land, IslandShape island, long seed) {
         if (y == MIN_Y) return Blocks.BEDROCK.defaultBlockState();
-        if (land && y < bottomY) return Blocks.WATER.defaultBlockState();
+        if (land && y < bottomY) {
+            int seabed = oceanFloorY(x, z, seed);
+            if (y > seabed) return Blocks.WATER.defaultBlockState();
+            return terrainBlock(x, y, z, seabed, MIN_Y, false, island, seed);
+        }
 
         if (!land && y < floorY - 4 && y > MIN_Y + 5 && UnderwaterCaves.isCave(x, y, z, seed)) {
             return Blocks.AIR.defaultBlockState();
@@ -246,30 +250,32 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
 
         for (StructureStart start : starts) {
             if (!start.isValid()) continue;
-            BoundingBox box = start.getBoundingBox();
-            int minX = Math.max(cp.getMinBlockX(), box.minX() - 8);
-            int maxX = Math.min(cp.getMaxBlockX(), box.maxX() + 8);
-            int minZ = Math.max(cp.getMinBlockZ(), box.minZ() - 8);
-            int maxZ = Math.min(cp.getMaxBlockZ(), box.maxZ() + 8);
-            int minY = Math.max(MIN_Y + 1, box.minY() - 8);
-            int maxY = Math.min(SEA_LEVEL, box.maxY() + 8);
 
-            for (int x = minX; x <= maxX; x++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    for (int y = minY; y <= maxY; y++) {
-                        int dx = Math.max(Math.max(box.minX() - x, 0), x - box.maxX());
-                        int dy = Math.max(Math.max(box.minY() - y, 0), y - box.maxY());
-                        int dz = Math.max(Math.max(box.minZ() - z, 0), z - box.maxZ());
-                        double shellDistance = (dx * dx + dz * dz) / 64.0 + (dy * dy) / 36.0;
-                        if (dx != 0 || dy != 0 || dz != 0) {
-                            if (shellDistance > 1.0) continue;
-                        }
+            // Carve a small chamber around each individual city piece. Using
+            // the whole city's bounding box creates enormous empty halls
+            // between distant buildings and still leaves some pieces embedded.
+            for (var piece : start.getPieces().pieces()) {
+                BoundingBox pieceBox = piece.getBoundingBox();
+                int minX = Math.max(cp.getMinBlockX(), pieceBox.minX() - 4);
+                int maxX = Math.min(cp.getMaxBlockX(), pieceBox.maxX() + 4);
+                int minZ = Math.max(cp.getMinBlockZ(), pieceBox.minZ() - 4);
+                int maxZ = Math.min(cp.getMaxBlockZ(), pieceBox.maxZ() + 4);
+                int minY = Math.max(MIN_Y + 1, pieceBox.minY() - 4);
+                int maxY = Math.min(SEA_LEVEL, pieceBox.maxY() + 4);
 
-                        BlockPos pos = new BlockPos(x, y, z);
-                        // Keep every structure piece intact; clear only the stone
-                        // between pieces and in the surrounding cavern envelope.
-                        if (!structureManager.structureHasPieceAt(pos, start)) {
-                            chunk.setBlockState(pos, Blocks.AIR.defaultBlockState(), 0);
+                for (int x = minX; x <= maxX; x++) {
+                    for (int z = minZ; z <= maxZ; z++) {
+                        for (int y = minY; y <= maxY; y++) {
+                            int dx = Math.max(Math.max(pieceBox.minX() - x, 0), x - pieceBox.maxX());
+                            int dy = Math.max(Math.max(pieceBox.minY() - y, 0), y - pieceBox.maxY());
+                            int dz = Math.max(Math.max(pieceBox.minZ() - z, 0), z - pieceBox.maxZ());
+                            double distance = (dx * dx + dz * dz) / 16.0 + (dy * dy) / 16.0;
+                            if ((dx != 0 || dy != 0 || dz != 0) && distance > 1.0) continue;
+
+                            BlockPos pos = new BlockPos(x, y, z);
+                            if (!structureManager.structureHasPieceAt(pos, start)) {
+                                chunk.setBlockState(pos, Blocks.AIR.defaultBlockState(), 0);
+                            }
                         }
                     }
                 }
