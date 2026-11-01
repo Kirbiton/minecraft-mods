@@ -16,9 +16,10 @@ The Overworld generator currently:
 - registers a Fabric server-level load callback that sets the world's default respawn point to the island centre when the current world spawn is outside the island; this leaves player beds/anchors untouched and avoids moving returning players;
 - exposes matching base-column and base-height calculations for heightmaps and structure placement;
 - explicitly creates the normal vanilla structure-placement state, preserving the registered vanilla structure sets;
-- extends the biome eligibility tags for ancient cities, trial chambers, and strongholds to include all ocean biome variants, so these structures can start below the seabed.
+- extends the biome eligibility tags for ancient cities, trial chambers, and strongholds to include all ocean biome variants, so these structures can start below the seabed;
+- after vanilla structure placement, applies a beard-box-style cavern pass around ancient-city starts, clearing terrain between structure pieces while preserving the pieces themselves;
 
-The preset's biome source uses vanilla checkerboard selection over warm, lukewarm, normal, cold, frozen, and deep ocean biomes. Nether and End retain their vanilla generators.
+The preset's biome source uses vanilla multi-noise climate parameters over warm, lukewarm, normal, cold, frozen, and deep ocean biomes. Nether and End retain their vanilla generators.
 
 ## Important implementation details
 
@@ -40,6 +41,6 @@ The current generator is an initial terrain implementation, not yet a fully vali
 8. Confirm the default world spawn is at the island centre on first world creation and after restart, while bed/anchor respawns and returning player positions remain unchanged.
 9. Test on a dedicated server and with common worldgen mods.
 
-The multi-noise biome source replaces square checkerboard regions with irregular climate-driven ocean zones. Tree canopies are currently kept inside their owning chunk, so edge canopies need refinement. Cave geometry is now generated deterministically with larger air-filled chambers intended to provide openings for vanilla dungeon features; their in-game connectivity and spawner frequency still require playtesting. The default world spawn is now explicitly set through the Fabric level-load event, but the first-join spawn flow and respawn behavior still require in-game validation.
+The multi-noise biome source replaces square checkerboard regions with irregular climate-driven ocean zones. Tree canopies are currently kept inside their owning chunk, so edge canopies need refinement. Cave geometry is now generated deterministically with larger air-filled chambers intended to provide openings for vanilla dungeon features; the vanilla ocean biomes already include monster-room features, but their in-game connectivity and spawner frequency still require playtesting. Ancient-city caverns are now carved after the city pieces are placed; the resulting clearance needs in-game confirmation. The default world spawn is now explicitly set through the Fabric level-load event, but the first-join spawn flow and respawn behavior still require in-game validation.
 
 Existing worlds are not modified by the world preset; it is intended for newly created worlds only.
