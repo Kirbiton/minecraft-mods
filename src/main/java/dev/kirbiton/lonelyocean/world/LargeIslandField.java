@@ -31,7 +31,8 @@ final class LargeIslandField {
         return new Island(cx, cz, r.nextDouble(92, 126), r.nextDouble(92, 126),
                 r.nextDouble(0, Math.PI * 2), r.nextDouble(0, Math.PI * 2),
                 r.nextDouble(0, Math.PI * 2), r.nextDouble(0, Math.PI * 2),
-                71 + r.nextInt(0, 17), 24 + r.nextInt(0, 13));
+                71 + r.nextInt(0, 17), 24 + r.nextInt(0, 13),
+                (int) Math.floorMod((long) gx * 3L + (long) gz * 2L + mix(seed), 5L));
     }
 
     int surfaceY(int x, int z) {
@@ -62,10 +63,10 @@ final class LargeIslandField {
         final int cx, cz, top, thickness;
         final double rx, rz, rot, a, b, c;
         final int biome;
-        Island(int cx,int cz,double rx,double rz,double rot,double a,double b,double c,int top,int thickness) {
+        Island(int cx,int cz,double rx,double rz,double rot,double a,double b,double c,int top,int thickness,int biome) {
             this.cx=cx; this.cz=cz; this.rx=rx; this.rz=rz; this.rot=rot;
             this.a=a; this.b=b; this.c=c; this.top=top; this.thickness=thickness;
-            this.biome=(int)Math.floorMod(mix(((long)cx << 32) ^ cz ^ Double.doubleToLongBits(a)), 5L);
+            this.biome=biome;
         }
         double radius(int x,int z) {
             double dx=x-cx,dz=z-cz,co=Math.cos(rot),si=Math.sin(rot);
