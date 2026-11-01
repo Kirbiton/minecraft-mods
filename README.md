@@ -16,7 +16,7 @@ Fabric mod for Minecraft 26.3 and Java 25.
 - Fabric 26.3 mod entry point and registered custom chunk-generator codec.
 - A world preset named **Lonely Ocean: Survival**, included in the normal world-preset selection tag.
 - A custom terrain generator that builds ocean water to sea level, a low seabed, and the seed-derived starter island.
-- Seed-dependent, flooded 3D cave pockets carved into the stone beneath the ocean floor, with deterministic unit tests.
+- Seed-dependent, broad air-filled 3D cave chambers beneath the seabed; these provide openings for vanilla monster-room features and their functional spawners.
 - Deterministic oak/birch tree placement on the island.
 - A Fabric server-level load hook sets the default world spawn to the island centre if the saved spawn is not already on safe island ground; it does not move returning players or override bed/anchor respawns.
 - A checkerboard biome source containing ocean-only biomes across warm, lukewarm, normal, cold, frozen, and deep variants.
@@ -30,9 +30,9 @@ The current code compiles and packages successfully, but a full Minecraft client
 
 - The world preset appearing and loading correctly in the Create World screen.
 - First-join spawn flow and respawn behavior after restart (the default spawn is now explicitly set to the island centre, but this still needs an in-game playtest).
-- Structure placement in the custom generator (especially monuments, shipwrecks, ruins, buried treasure, ancient cities, trial chambers, and strongholds).
+- Structure placement in the custom generator (especially monuments, shipwrecks, ruins, buried treasure, ancient cities, trial chambers, and strongholds); ancient-city surroundings still need in-game inspection.
 - Tree canopy continuity at chunk edges and island appearance across many seeds.
-- In-game cave shape, connectivity, and exploration quality; coral distribution and terrain/biome visual transitions.
+- In-game cave shape, connectivity, dungeon/spawner frequency, coral distribution, and terrain/biome visual transitions.
 - Dedicated-server behavior.
 
 The current biome source uses vanilla checkerboard placement, so ocean biome regions are arranged in large square regions rather than smoothly blended climate zones. Existing saves are not rewritten; the preset affects newly created worlds only.

@@ -96,7 +96,7 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
         if (land && y < bottomY) return Blocks.AIR.defaultBlockState();
 
         if (!land && y < floorY - 4 && y > MIN_Y + 5 && UnderwaterCaves.isCave(x, y, z, seed)) {
-            return Blocks.WATER.defaultBlockState();
+            return Blocks.AIR.defaultBlockState();
         }
 
         // Match the Overworld's stone -> deepslate transition around Y=0.
