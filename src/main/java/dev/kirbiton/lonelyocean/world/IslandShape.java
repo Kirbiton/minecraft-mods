@@ -26,9 +26,9 @@ public final class IslandShape {
         this.centerZ = random.nextInt(-192, 193);
 
         // A diameter between roughly 20 and 35 blocks.
-        double diameter = random.nextDouble(20.0, 35.1);
-        this.radiusX = diameter * random.nextDouble(0.43, 0.57);
-        this.radiusZ = diameter - this.radiusX;
+        double radius = random.nextDouble(10.0, 17.55);
+        this.radiusX = radius * random.nextDouble(0.43, 0.57);
+        this.radiusZ = radius - this.radiusX;
         this.rotation = random.nextDouble(0.0, Math.PI * 2.0);
         this.phaseA = random.nextDouble(0.0, Math.PI * 2.0);
         this.phaseB = random.nextDouble(0.0, Math.PI * 2.0);
