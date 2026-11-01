@@ -30,6 +30,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.RandomState;
+import net.minecraft.world.level.levelgen.Beardifier;
 import net.minecraft.world.level.StructureManager;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.world.level.WorldGenLevel;
@@ -88,6 +89,19 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
                 if (!land) {
                     for (int y = floor + 1; y <= SEA_LEVEL && y < maxY; y++) {
                         if (y >= minY) chunk.setBlockState(new BlockPos(x, y, z), Blocks.WATER.defaultBlockState(), 0);
+                    }
+                }
+            }
+        }
+        Beardifier beardifier = Beardifier.forStructuresInChunk(structureManager, cp);
+        for (int lx = 0; lx < 16; lx++) {
+            int x = cp.getMinBlockX() + lx;
+            for (int lz = 0; lz < 16; lz++) {
+                int z = cp.getMinBlockZ() + lz;
+                for (int y = minY + 5; y <= SEA_LEVEL && y < maxY; y++) {
+                    BlockPos pos = new BlockPos(x, y, z);
+                    if (!chunk.getBlockState(pos).isAir() && beardifier.sampleValue(SamplerContext.EMPTY_UNCACHED, x, y, z) < -0.01F) {
+                        chunk.setBlockState(pos, Blocks.AIR.defaultBlockState(), 0);
                     }
                 }
             }
@@ -227,61 +241,6 @@ public final class LonelyOceanChunkGenerator extends ChunkGenerator {
     }
     @Override public int getSpawnHeight(LevelHeightAccessor accessor) { return SEA_LEVEL + 1; }
 
-    /**
-     * The vanilla ancient-city structure uses beard_box terrain adaptation.
-     * NoiseBasedChunkGenerator applies that through the beardifier density
-     * function; this hand-built terrain generator has no density pipeline, so
-     * reproduce the important result after the city pieces have been placed:
-     * hollow the gaps between pieces and a short irregular shell around them.
-     */
-    @Override
-    public void applyBiomeDecoration(WorldGenLevel level, ChunkAccess chunk, StructureManager structureManager) {
-        super.applyBiomeDecoration(level, chunk, structureManager);
-        if (!structureManager.shouldGenerateStructures()) return;
-
-        Registry<Structure> structures = level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
-        Identifier ancientCityId = Identifier.fromNamespaceAndPath("minecraft", "ancient_city");
-        ChunkPos cp = chunk.getPos();
-
-        List<StructureStart> starts = structureManager.startsForStructure(cp.x(), cp.z(),
-                structure -> structures.getResourceKey(structure)
-                        .map(key -> key.identifier().equals(ancientCityId))
-                        .orElse(false));
-
-        for (StructureStart start : starts) {
-            if (!start.isValid()) continue;
-
-            // Carve a small chamber around each individual city piece. Using
-            // the whole city's bounding box creates enormous empty halls
-            // between distant buildings and still leaves some pieces embedded.
-            for (var piece : start.getPieces()) {
-                BoundingBox pieceBox = piece.getBoundingBox();
-                int minX = Math.max(cp.getMinBlockX(), pieceBox.minX() - 2);
-                int maxX = Math.min(cp.getMaxBlockX(), pieceBox.maxX() + 2);
-                int minZ = Math.max(cp.getMinBlockZ(), pieceBox.minZ() - 2);
-                int maxZ = Math.min(cp.getMaxBlockZ(), pieceBox.maxZ() + 2);
-                int minY = Math.max(MIN_Y + 1, pieceBox.minY() - 2);
-                int maxY = Math.min(SEA_LEVEL, pieceBox.maxY() + 2);
-
-                for (int x = minX; x <= maxX; x++) {
-                    for (int z = minZ; z <= maxZ; z++) {
-                        for (int y = minY; y <= maxY; y++) {
-                            int dx = Math.max(Math.max(pieceBox.minX() - x, 0), x - pieceBox.maxX());
-                            int dy = Math.max(Math.max(pieceBox.minY() - y, 0), y - pieceBox.maxY());
-                            int dz = Math.max(Math.max(pieceBox.minZ() - z, 0), z - pieceBox.maxZ());
-                            double distance = (dx * dx + dz * dz) / 4.0 + (dy * dy) / 4.0;
-                            if ((dx != 0 || dy != 0 || dz != 0) && distance > 1.0) continue;
-
-                            BlockPos pos = new BlockPos(x, y, z);
-                            if (!structureManager.structureHasPieceAt(pos, start)) {
-                                chunk.setBlockState(pos, Blocks.AIR.defaultBlockState(), 0);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     @Override public void spawnOriginalMobs(WorldGenRegion region) { }
     @Override public void addDebugScreenInfo(List<String> result, RandomState randomState, BlockPos feetPos,
