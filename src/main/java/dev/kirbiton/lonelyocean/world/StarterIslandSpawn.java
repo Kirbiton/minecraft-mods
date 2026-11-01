@@ -23,8 +23,10 @@ public final class StarterIslandSpawn {
 
             IslandShape island = IslandShape.fromSeed(level.getSeed());
             LevelData.RespawnData current = level.getRespawnData();
+            int currentSurface = island.surfaceY(current.pos().getX(), current.pos().getZ());
             if (current.dimension() == Level.OVERWORLD
-                    && island.contains(current.pos().getX(), current.pos().getZ())) {
+                    && currentSurface != Integer.MIN_VALUE
+                    && current.pos().getY() == currentSurface + 1) {
                 return;
             }
 
